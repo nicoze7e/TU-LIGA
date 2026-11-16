@@ -115,7 +115,7 @@
   function refrescar(cat) { TL().recargar(); }
 
   /* ---------- ganchos hacia app.js ---------- */
-  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
+  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-clubes', 'g-club', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
   function tab(k, def) {
     if (k === 'planilla') return 'planilla';
     if (k === 'gestion' || /^g-/.test(k)) return 'gestion';
@@ -129,26 +129,36 @@
   function emailDe(u) { return (u.rol === 'coordinador' ? 'coordinador' : 'planillero' + u.id.replace(/\D/g, '')) + '.' + S().liga.slug + '@example.com'; }
   function idDePerfil(p) { return p.rol === 'coordinador' ? 'coord' : 'p' + String(p.nombre || '').replace(/\D/g, ''); }
   function perfilReal(uidu) { return SB().from('perfiles').select('rol,nombre,liga_id,activo').eq('usuario_id', uidu).maybeSingle().then(function (r) { return r.data; }); }
+  /* El servidor entrega como máximo 1000 filas por consulta: se pide por páginas hasta traer todo. */
+  async function todo(mk) {
+    var filas = [], desde = 0;
+    for (;;) {
+      var r = await mk().range(desde, desde + 999); if (r.error) throw r.error;
+      var d = r.data || []; filas = filas.concat(d);
+      if (d.length < 1000) break; desde += 1000;
+    }
+    return filas;
+  }
   async function cargarReal() {                         // trae a memoria los datos de la liga (lo que esta cuenta puede ver)
     var sb = SB(), lid = ligaId();
     var c = await sb.from('vista_categorias').select('*').eq('liga_id', lid); D.vista_categorias = c.data || [];
     var ids = D.vista_categorias.map(function (x) { return x.id; });
     var r = await Promise.all([
-      sb.from('vista_equipos').select('*').in('categoria_id', ids),
-      sb.from('vista_jugadores').select('*').eq('liga_id', lid),
-      sb.from('vista_partidos').select('*').eq('liga_id', lid).order('fecha_hora'),
-      sb.from('vista_tabla').select('*').in('categoria_id', ids),
-      sb.from('vista_planilla_claims').select('*')
+      todo(function () { return sb.from('vista_equipos').select('*').in('categoria_id', ids).order('id'); }),
+      todo(function () { return sb.from('vista_jugadores').select('*').eq('liga_id', lid).order('id').order('equipo_id'); }),
+      todo(function () { return sb.from('vista_partidos').select('*').eq('liga_id', lid).order('fecha_hora').order('id'); }),
+      todo(function () { return sb.from('vista_tabla').select('*').in('categoria_id', ids).order('categoria_id').order('posicion'); }),
+      todo(function () { return sb.from('vista_planilla_claims').select('*').order('partido_id'); })
     ]);
-    D.vista_equipos = r[0].data || []; D.vista_jugadores = r[1].data || []; D.vista_partidos = r[2].data || []; D.vista_tabla = r[3].data || [];
-    var claims = {}; (r[4].data || []).forEach(function (x) { claims[x.partido_id] = x.planillero; });
+    D.vista_equipos = r[0]; D.vista_jugadores = r[1]; D.vista_partidos = r[2]; D.vista_tabla = r[3];
+    var claims = {}; r[4].forEach(function (x) { claims[x.partido_id] = x.planillero; });
     D.vista_partidos.forEach(function (p) { p.claim = claims[p.id] || null; });
     // posición y habilitación (cuentas de la liga) y datos privados (solo el coordinador; la base los filtra)
-    var pl = await sb.from('vista_plantel_planilla').select('*').eq('liga_id', lid), pm = {};
-    (pl.data || []).forEach(function (x) { pm[x.jugador_id] = x; });
+    var pl = await todo(function () { return sb.from('vista_plantel_planilla').select('*').eq('liga_id', lid).order('jugador_id'); }), pm = {};
+    pl.forEach(function (x) { pm[x.jugador_id] = x; });
     D.vista_jugadores.forEach(function (j) { var x = pm[j.id]; if (x) { j.posicion = x.posicion; j.habilitado = x.habilitado; } });
     PRIV = {};
-    if (U && U.rol === 'coordinador') { var pr = await sb.from('jugadores_privado').select('*'); (pr.data || []).forEach(function (x) { PRIV[x.jugador_id] = { doc: x.documento || '', nac: x.fecha_nacimiento || '', hab: x.habilitado === false ? 'no' : 'si' }; }); }
+    if (U && U.rol === 'coordinador') { var pr = await todo(function () { return sb.from('jugadores_privado').select('*').order('jugador_id'); }); pr.forEach(function (x) { PRIV[x.jugador_id] = { doc: x.documento || '', nac: x.fecha_nacimiento || '', hab: x.habilitado === false ? 'no' : 'si' }; }); }
   }
   var ultPing = 0;
   function pingDrive() {                               // le avisa a la copia de Drive que hay cambios (máximo cada 30 s; si no hay enlace configurado, no hace nada)
@@ -267,6 +277,8 @@
       case 'g-fixture': return vGFixture(r.q);
       case 'g-partido': return vGPartido(p[1], r.q);
       case 'g-armar': return vGArmar();
+      case 'g-clubes': return vGClubes();
+      case 'g-club': return vGClub(p[1]);
       case 'g-equipos': return vGEquipos(r.q);
       case 'g-equipo': return vGEquipo(p[1], r.q);
       case 'g-jugador': return vGJugador(p[1], r.q);
@@ -281,6 +293,12 @@
 
   function despues(r) {
     var pant = document.getElementById('pantalla');
+    pant.oninput = function (e) {
+      var t = e.target; if (!t || (t.id !== 'cBuscar' && t.id !== 'jBuscar')) return;
+      if (t.id === 'cBuscar') ST.cq = t.value; else ST.jq = t.value;
+      var pos = t.selectionStart; TL().pintar(true);
+      var n = document.getElementById(t.id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) {} }
+    };
     pant.onchange = function (e) {
       var t = e.target;
       if (t && t.id === 'fLogo' && t.files && t.files[0]) {
@@ -531,7 +549,7 @@
     var prox = partidos(cat).filter(function (p) { return p.estado === 'programado'; })[0];
     return '<h1>Gestión de la liga</h1>' + nube() + chipsCat() +
       '<a class="card gcard" href="#/g-fixture"><span><b>📅 Fixture</b><br><span class="muted sm">Armar y cambiar los partidos. La web y los planilleros lo siguen.</span><br><span class="sm muted">' + np + ' partidos' + (prox ? ' · próximo: ' + esc(new Date(prox.fecha_hora).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })) : '') + '</span></span><span>›</span></a>' +
-      '<a class="card gcard" href="#/g-equipos"><span><b>🛡️ Equipos y jugadores</b><br><span class="muted sm">Plantel, camisetas, altura y colores de cada equipo.</span><br><span class="sm muted">' + ne + ' equipos · ' + nj + ' jugadores</span></span><span>›</span></a>' +
+      '<a class="card gcard" href="#/g-clubes"><span><b>🛡️ Clubes y jugadores</b><br><span class="muted sm">Cada club con sus categorías y sus jugadores habilitados en cada una.</span><br><span class="sm muted">' + ne + ' equipos · ' + nj + ' jugadores</span></span><span>›</span></a>' +
       '<div class="ayuda">✏️ <b>¿Hay que corregir un partido?</b> Entrá a <b>Fixture</b> como siempre: en los partidos cerrados te aparece el botón <i>Corregir partido</i>.</div><p class="centro"><a class="mini" href="#/g-cuentas">👥 Cuentas de la liga</a> <a class="mini" href="#/g-liga">⚙️ Mi liga</a></p>';
   }
 
@@ -594,6 +612,64 @@
       '<div class="grid2"><label class="campo"><span>Nueva categoría</span><input id="cNom" placeholder="Ej.: +30" autocapitalize="characters"></label><label class="campo"><span>Temporada</span><input id="cTemp" value="2026" inputmode="numeric"></label></div><button class="btn full" data-a="addCat" type="button">+ Agregar categoría</button>';
   }
 
+  /* ---- clubes: un club agrupa sus equipos de cada categoría; el jugador figura una vez y queda habilitado en una o varias categorías ---- */
+  function kClub(n) { return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function clubes() {
+    var cs = cats().map(function (c) { return c.id; }), m = {}, out = [];
+    D.vista_equipos.filter(function (e) { return cs.indexOf(e.categoria_id) >= 0; }).forEach(function (e) {
+      var k = kClub(e.nombre);
+      if (!m[k]) { m[k] = { key: k, nombre: e.nombre, equipos: [], color: e.color_principal, alt: e.color_alternativo, logo: e.logo_url }; out.push(m[k]); }
+      m[k].equipos.push(e); if (!m[k].logo && e.logo_url) m[k].logo = e.logo_url;
+    });
+    return out.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+  }
+  function club(key) { return clubes().filter(function (c) { return c.key === key; })[0]; }
+  function jugadoresClub(c) {                        // cada persona una sola vez, con las categorías en las que está habilitada
+    var ids = {}, m = {}, out = [];
+    c.equipos.forEach(function (e) { ids[e.id] = true; });
+    D.vista_jugadores.filter(function (j) { return ids[j.equipo_id]; }).forEach(function (j) {
+      if (!m[j.id]) { m[j.id] = { j: j, en: {} }; out.push(m[j.id]); }
+      m[j.id].en[j.equipo_id] = j;
+    });
+    return out.sort(function (a, b) { return (a.j.apellido + a.j.nombre) < (b.j.apellido + b.j.nombre) ? -1 : 1; });
+  }
+  function nomCat(id) { var c = cats().filter(function (x) { return x.id === id; })[0]; return c ? c.nombre : ''; }
+  function vGClubes() {
+    var q = kClub(ST.cq || ''), lista = clubes().filter(function (c) { return !q || c.key.indexOf(q) >= 0; });
+    var h = '<h1>Clubes y jugadores</h1>' + nube() +
+      '<input id="cBuscar" type="search" class="buscar-club" placeholder="Buscar club…" value="' + esc(ST.cq || '') + '" autocomplete="off" style="width:100%;margin-bottom:10px">' +
+      '<div class="sm muted" style="margin:0 0 8px">' + lista.length + ' clubes · <a href="#/g-equipos" style="color:var(--acc2)">ver por categoría</a></div>';
+    if (!lista.length) h += '<p class="vacio">No hay clubes que coincidan.</p>';
+    return h + lista.map(function (c) {
+      var n = {}; jugadoresClub(c).forEach(function (x) { n[x.j.id] = 1; });
+      var cl = c.equipos.map(function (e) { return '<span class="pill">' + esc(nomCat(e.categoria_id)) + ' · ' + jugadores(e.id).length + '</span>'; }).join(' ');
+      return '<a class="card" href="#/g-club/' + encodeURIComponent(c.key) + '" style="display:block"><div class="fila"><span class="fila" style="justify-content:flex-start;gap:10px">' +
+        (c.logo ? '<img class="esc lg" style="--c:' + esc(c.color) + '" src="' + esc(c.logo) + '" alt="">' : '<span class="color" style="background:' + esc(c.color) + '"></span>') +
+        '<b>' + esc(c.nombre) + '</b></span><span class="muted sm">' + Object.keys(n).length + ' jug. ›</span></div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + cl + '</div></a>';
+    }).join('') + '<a class="fab" href="#/g-equipo/nuevo?cat=' + gcat() + '">+ Club</a>';
+  }
+  function vGClub(key) {
+    var c = club(decodeURIComponent(key || '')); if (!c) return '<p class="vacio">No encuentro ese club.</p><a class="btn full" href="#/g-clubes">← Volver a clubes</a>';
+    var fk = 'club:' + c.key;
+    if (ST.form.eq !== fk) ST.form = { eq: fk, p: c.color, a: c.alt || '#ffffff', logo: c.logo || null };
+    var js = jugadoresClub(c), q = kClub(ST.jq || ''), lista = js.filter(function (x) { return !q || kClub(x.j.apellido + ' ' + x.j.nombre).indexOf(q) >= 0; });
+    var libres = cats().filter(function (ct) { return !c.equipos.some(function (e) { return e.categoria_id === ct.id; }); });
+    var h = '<a class="sm" href="#/g-clubes" style="color:var(--acc2)">‹ Clubes</a><h1 style="margin-top:6px">' + esc(c.nombre) + '</h1>' + nube() +
+      '<span class="muted sm">Logo del club (se ve en todas sus categorías)</span>' + logoEdit(ST.form.logo, ST.form.p) +
+      '<span class="muted sm">Color principal</span>' + paleta('p', ST.form.p) + '<span class="muted sm">Color alternativo</span>' + paleta('a', ST.form.a) +
+      '<button class="btn p full" data-a="gclub" data-key="' + esc(c.key) + '" type="button">Guardar club</button>' +
+      '<h2>Categorías del club</h2>' + c.equipos.map(function (e) { return '<a class="card fila" href="#/g-equipo/' + e.id + '"><b>' + esc(nomCat(e.categoria_id)) + '</b><span class="muted sm">' + jugadores(e.id).length + ' jug. ›</span></a>'; }).join('');
+    if (libres.length) h += '<div class="grid2" style="align-items:end"><label class="campo" style="margin:0"><span>Sumar categoría</span><select id="ccNueva">' + libres.map(function (ct) { return '<option value="' + ct.id + '">' + esc(ct.nombre) + '</option>'; }).join('') + '</select></label><button class="btn" data-a="addCatClub" data-key="' + esc(c.key) + '" type="button">+ Sumar</button></div>';
+    h += '<h2>Jugadores del club · ' + js.length + '</h2><p class="sm muted" style="margin-top:-4px">Cada jugador figura una sola vez. Tocá una categoría para habilitarlo o quitarlo.</p>' +
+      '<input id="jBuscar" type="search" placeholder="Buscar jugador…" value="' + esc(ST.jq || '') + '" autocomplete="off" style="width:100%;margin-bottom:8px">';
+    h += lista.map(function (x) {
+      var chips = c.equipos.map(function (e) { var on = !!x.en[e.id]; return '<button type="button" class="chip' + (on ? ' on' : '') + '" data-a="toggleCat" data-jug="' + x.j.id + '" data-eq="' + e.id + '" style="height:34px;font-size:12.5px">' + esc(nomCat(e.categoria_id)) + '</button>'; }).join('');
+      var pr = PRIV[x.j.id] || {};
+      return '<div class="card"><div class="fila"><a href="#/g-jugador/' + x.j.id + '"><b>' + esc(nombreDe(x.j)) + '</b></a><span class="muted sm">' + esc(pr.doc || '') + '</span></div><div class="chips" style="padding:8px 0 0;margin:0">' + chips + '</div></div>';
+    }).join('') || '<p class="vacio">No hay jugadores que coincidan.</p>';
+    return h + '<a class="fab" href="#/g-jugador/nuevo?eq=' + c.equipos[0].id + '">+ Jugador</a>';
+  }
+
   /* ---- equipos y jugadores ---- */
   function vGEquipos() {
     var cat = gcat(), eq = equipos(cat);
@@ -636,6 +712,7 @@
       '<span class="muted sm">Logo del equipo (se ve en la web y en los flyers)</span>' + logoEdit(ST.form.logo, ST.form.p) +
       '<span class="muted sm">Color principal (se ve en toda la app)</span>' + paleta('p', ST.form.p) + '<span class="muted sm">Color alternativo</span>' + paleta('a', ST.form.a) +
       '<div class="err" id="eErr"></div><button class="btn p full" data-a="gequipo" data-id="' + key + '" data-cat="' + cat + '" type="button">Guardar equipo</button>';
+    if (!nuevo && REAL) h += '<button class="btn full" style="margin-top:10px" data-a="fusionar" data-id="' + id + '" type="button">🔀 Fusionar con otro equipo</button>';
     if (nuevo) return h + '<div class="ayuda">Guardá el equipo y después agregás sus jugadores.</div>';
     h += '<h2>Plantel · ' + js.length + '</h2>' + js.map(function (j) { return '<a class="asist" href="#/g-jugador/' + j.id + '"><span class="num">' + (j.camiseta_habitual == null ? '–' : '#' + j.camiseta_habitual) + '</span><span>' + esc(nombreDe(j)) + '</span><span class="muted sm" style="margin-left:auto">' + (j.altura_cm || '–') + ' cm ›</span></a>'; }).join('');
     h += '<div class="fila-btns"><a class="btn p" href="#/g-jugador/nuevo?eq=' + id + '">+ Agregar jugador</a><button class="btn" data-a="pegarT" type="button">📋 Pegar lista</button></div>';
@@ -802,6 +879,46 @@
       okr(await SB().rpc('recalcular_partido', { p_partido: p.id }));
       EVL[p.id] = 0; TL().limpiar(p.id); await cargarEventosReal(p.id); await refrescarReal();
       TL().toast('Marcador: ' + antes + ' → ' + p.marcador_local + '-' + p.marcador_visitante);
+    },
+    gclub: async function (b) {
+      var c = club(b.dataset.key); if (!c) return;
+      var logo = ST.form.logo, url = null, fila = { color_principal: ST.form.p, color_alternativo: ST.form.a };
+      if (esDataUrl(logo)) url = await subirLogo(logo, ligaId() + '/equipos/' + c.equipos[0].id + '.png');
+      if (url) fila.logo_url = url; else if (!logo) fila.logo_url = null;
+      for (var i = 0; i < c.equipos.length; i++) okr(await SB().from('equipos').update(fila).eq('id', c.equipos[i].id));
+      ST.form = {}; TL().toast('Club guardado en todas sus categorías.'); await refrescarReal();
+    },
+    addCatClub: async function (b) {
+      var c = club(b.dataset.key), cat = document.getElementById('ccNueva').value; if (!c || !cat) return;
+      var base = c.equipos[0];
+      okr(await SB().from('equipos').insert({ categoria_id: cat, nombre: c.nombre, color_principal: c.color, color_alternativo: c.alt || base.color_alternativo, logo_url: c.logo || null }));
+      TL().toast('Categoría sumada al club. Habilitá a sus jugadores con los botones.'); await refrescarReal();
+    },
+    toggleCat: async function (b) {
+      var jid = b.dataset.jug, eq = b.dataset.eq, on = b.classList.contains('on');
+      var c = clubes().filter(function (k) { return k.equipos.some(function (e) { return e.id === eq; }); })[0];
+      var actual = c ? c.equipos.filter(function (e) { return D.vista_jugadores.some(function (j) { return j.id === jid && j.equipo_id === e.id; }); }) : [];
+      if (on) {
+        if (actual.length <= 1) { TL().toast('Tiene que quedar en al menos una categoría. Para sacarlo del club, borralo desde su ficha.'); return; }
+        var d = await SB().from('inscripciones').delete().eq('jugador_id', jid).eq('equipo_id', eq);
+        if (d.error && d.error.code === '23503') okr(await SB().from('inscripciones').update({ activa: false }).eq('jugador_id', jid).eq('equipo_id', eq)); else okr(d);
+      } else {
+        okr(await SB().from('inscripciones').upsert({ jugador_id: jid, equipo_id: eq, activa: true }, { onConflict: 'jugador_id,equipo_id' }));
+      }
+      await refrescarReal();
+    },
+    fusionar: async function (b) {
+      var e = equipo(b.dataset.id), otros = equipos(e.categoria_id).filter(function (x) { return x.id !== e.id; }).sort(function (a, c) { return a.nombre < c.nombre ? -1 : 1; });
+      if (!otros.length) { TL().toast('No hay otros equipos en esta categoría.'); return; }
+      modal('<h3>Fusionar equipos</h3><p class="muted sm" style="margin:0 0 12px">Todo lo de <b>' + esc(e.nombre) + '</b> (jugadores, partidos y planillas) pasa al equipo que elijas, y <b>' + esc(e.nombre) + ' se elimina</b>. No se repiten jugadores.</p>' +
+        '<label class="campo"><span>Pasar a…</span><select id="fuDest">' + otros.map(function (x) { return '<option value="' + x.id + '">' + esc(x.nombre) + ' · ' + jugadores(x.id).length + ' jug.</option>'; }).join('') + '</select></label>',
+        [['Cancelar'], ['Fusionar', function () {
+          var d = document.getElementById('fuDest').value;
+          SB().rpc('fusionar_equipos', { p_origen: e.id, p_destino: d }).then(function (r) {
+            if (r.error) TL().toast(msgError(r.error)); else { TL().toast('Equipos fusionados.'); location.hash = '#/g-equipo/' + d; refrescarReal(); }
+          });
+          return true;
+        }, 'p']]);
     },
     gliga: async function () {
       var l = S().liga, nom = document.getElementById('lNombre').value.trim(), er = document.getElementById('lErr');
@@ -1001,6 +1118,29 @@
         q = { id: uid(), categoria_id: cat, nombre: nom, color_principal: ST.form.p, color_alternativo: ST.form.a, logo_url: ST.form.logo || null }; D.vista_equipos.push(q); recalcTabla(cat);
         drive('BASE › Equipos', 'fila agregada: ' + nom); TL().toast('Equipo creado. Ahora cargá sus jugadores.'); ST.form = {}; location.hash = '#/g-equipo/' + q.id; TL().recargar();
       }
+    },
+    gclub: function (b) {
+      var c = club(b.dataset.key); if (!c) return;
+      c.equipos.forEach(function (e) { e.color_principal = ST.form.p; e.color_alternativo = ST.form.a; e.logo_url = ST.form.logo || null; });
+      drive('BASE › Equipos', 'club actualizado: ' + c.nombre); ST.form = {}; TL().toast('Club guardado en todas sus categorías.'); TL().recargar();
+    },
+    addCatClub: function (b) {
+      var c = club(b.dataset.key), cat = document.getElementById('ccNueva').value; if (!c || !cat) return;
+      D.vista_equipos.push({ id: uid(), categoria_id: cat, nombre: c.nombre, color_principal: c.color, color_alternativo: c.alt, logo_url: c.logo || null });
+      drive('BASE › Equipos', 'categoría sumada a ' + c.nombre); TL().toast('Categoría sumada al club.'); TL().recargar();
+    },
+    toggleCat: function (b) {
+      var jid = b.dataset.jug, eq = b.dataset.eq, on = b.classList.contains('on'), e = equipo(eq);
+      var propias = D.vista_jugadores.filter(function (j) { return j.id === jid; });
+      if (on) {
+        var enClub = propias.filter(function (j) { var q = equipo(j.equipo_id); return q && kClub(q.nombre) === kClub(e.nombre); });
+        if (enClub.length <= 1) { TL().toast('Tiene que quedar en al menos una categoría.'); return; }
+        D.vista_jugadores.splice(D.vista_jugadores.indexOf(propias.filter(function (j) { return j.equipo_id === eq; })[0]), 1);
+      } else {
+        var base = propias[0]; if (!base) return;
+        D.vista_jugadores.push(Object.assign({}, base, { equipo_id: eq, equipo_nombre: e.nombre, categoria_id: e.categoria_id, camiseta_habitual: null }));
+      }
+      drive('BASE › Jugadores', 'categorías del jugador actualizadas'); TL().recargar();
     },
     pegarT: function () { ST.pegar = !ST.pegar; TL().pintar(true); },
     pegarOk: function (b) {

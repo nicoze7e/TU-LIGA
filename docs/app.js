@@ -8,7 +8,7 @@
   var CFG = window.LIGA_CONFIG || {};
   var DEMO = !(CFG.supabaseUrl && CFG.supabaseKey) || /[?&]demo=1/.test(location.search);   // ?demo=1 fuerza el modo demostración
   var sb = null;
-  var S = { ligas: [], liga: null, cats: [], catId: '', eq: {}, jug: {}, partidos: [], tabla: [], statsJ: [], statsE: [], cargado: false };
+  var S = { ligas: [], liga: null, cats: [], vivoCats: {}, catId: '', eq: {}, jug: {}, partidos: [], tabla: [], statsJ: [], statsE: [], cargado: false };
   var PJ = {};            // jugadores habilitados por partido (cache)
   var LV = { evs: {}, canal: null, poll: null, demo: null };   // eventos de partidos en vivo
   var SELLOG = {};        // cache de estadísticas por partido
@@ -55,8 +55,9 @@
     return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function () { rej(new Error('No pude cargar ' + src)); }; document.head.appendChild(s); });
   }
 
-  function vaciarLiga() { S.cats = []; S.catId = ''; S.eq = {}; S.jug = {}; S.partidos = []; S.tabla = []; S.statsJ = []; S.statsE = []; S.cargado = false; LV.evs = {}; PJ = {}; SELLOG = {}; }
+  function vaciarLiga() { S.cats = []; S.vivoCats = {}; S.catId = ''; S.eq = {}; S.jug = {}; S.partidos = []; S.tabla = []; S.statsJ = []; S.statsE = []; S.cargado = false; LV.evs = {}; PJ = {}; SELLOG = {}; }
   function cargar() {
+    sel('vista_partidos', { liga_id: S.liga.id, estado: 'en_vivo' }).then(function (v) { S.vivoCats = {}; v.forEach(function (p) { S.vivoCats[p.categoria_id] = (S.vivoCats[p.categoria_id] || 0) + 1; }); }, function () { S.vivoCats = {}; });
     return sel('vista_categorias', { liga_slug: S.liga.slug }).then(function (cats) {
       if (!cats.length) { S.cats = []; S.catId = ''; S.cargado = true; return; }
       S.cats = cats;
@@ -214,6 +215,18 @@
       '<div class="fila-btns"><button class="btn" data-share="tabla" type="button">⤴ Compartir la tabla</button></div>';
     return h;
   }
+  /* ---------- categorías: barra de selección para cualquier usuario ---------- */
+  function cambiarCat(id) {
+    S.catId = id; LS.set('liga_cat', id); LV.evs = {}; CAL.sel = null;
+    var pant = $('#pantalla'); pant.innerHTML = '<div class="sk" aria-label="Cargando"><i></i><i></i><i></i></div>';
+    cargarCategoria().then(function () { cabecera(); return iniciarVivo(); }).then(function () { pintar(); window.scrollTo(0, 0); });
+  }
+  function catBar() {
+    if (S.cats.length < 2) return '';
+    return '<div class="catbar" role="group" aria-label="Categorías">' + S.cats.map(function (c) {
+      return '<button type="button" class="chip' + (c.id === S.catId ? ' on' : '') + '" data-cat="' + c.id + '">' + esc(c.nombre) + (S.vivoCats[c.id] ? '<i class="vv" title="Partido en vivo"></i>' : '') + '</button>';
+    }).join('') + '</div>';
+  }
   function tarjetaX(p) { return '<div class="pw">' + tarjetaPartido(p) + (window.TL_ROLES ? TL_ROLES.extra(p) : '') + '</div>'; }
   function agrupar(arr) {
     var dias = [], mapa = {};
@@ -263,6 +276,7 @@
         pintar(true);
       };
     });
+    document.querySelectorAll('[data-cat]').forEach(function (b) { b.onclick = function () { if (b.dataset.cat !== S.catId) cambiarCat(b.dataset.cat); }; });
     document.querySelectorAll('[data-modo]').forEach(function (b) { b.onclick = function () { CAL.modo = b.dataset.modo; pintar(true); }; });
   }
   function vPartidos(q) {
@@ -431,6 +445,7 @@
       case 'comparar': h = vComparar(r.q); break;
       default: h = vVivo();
     }
+    if (rh == null && S.cats.length > 1 && /^(vivo|tabla|partidos|jugadores|comparar|equipos)$/.test(p[0])) h = catBar() + h;
     var y = window.scrollY;
     pant.innerHTML = h;
     if (!suave) { pant.classList.remove('fade'); void pant.offsetWidth; pant.classList.add('fade'); }
@@ -484,11 +499,10 @@
     $('#logoLiga').outerHTML = l ? logoHTML(l, 'logoLiga').replace('class="logoLiga"', 'class="logoLiga" id="logoLiga"').replace('<span class="logoLiga"', '<span id="logoLiga" class="logoLiga"') : '<img id="logoLiga" class="logoLiga" src="logo.svg" alt="" style="background:none;border:0;padding:0">';
     $('#ligaNombre').textContent = l ? l.nombre : 'TU LIGA';
     $('#catNombre').textContent = l ? (c.nombre ? c.nombre + ' · ' + c.temporada : 'Sin categorías') : 'Tu liga, al día';
-    $('#catNombre').hidden = !!(l && S.cats.length > 1);
     document.title = (l ? l.nombre + ' · ' : '') + (CFG.nombreApp || 'TU LIGA');
-    var cs = $('#catSel'); cs.hidden = S.cats.length < 2;
+    var cs = $('#catSel'); cs.hidden = true;
     cs.innerHTML = S.cats.map(function (x) { return '<option value="' + x.id + '"' + (x.id === S.catId ? ' selected' : '') + '>' + esc(x.nombre) + '</option>'; }).join('');
-    cs.onchange = function () { S.catId = cs.value; LS.set('liga_cat', S.catId); LV.evs = {}; cargarCategoria().then(function () { cabecera(); iniciarVivo().then(function () { pintar(); }); }); };
+
     $('#cambiarLiga').hidden = !l || !!CFG.ligaFija;
     if (window.TL_ROLES) TL_ROLES.cabecera();
   }
