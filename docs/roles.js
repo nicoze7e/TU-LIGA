@@ -650,7 +650,7 @@
   function muestraRecibidos() {                       // en la demo se muestra un envío de ejemplo para ver cómo funciona
     var cn = cats().map(function (c) { return c.nombre; }), c1 = cn[0], c2 = cn[1] || cn[0];
     return [{ club: 'Club Ejemplo', club_nuevo: true, enviado: new Date().toISOString(), jugadores: [
-      { ids: ['d1'], documento: '31000111', apellido: 'Pérez', nombre: 'Martín', nacimiento: '1991-03-12', camiseta: 7, categorias: c1 === c2 ? [c1] : [c1, c2], ya_existe: false },
+      { ids: ['d1'], documento: '31000111', apellido: 'Pérez', nombre: 'Martín', nacimiento: '1991-03-12', camiseta: 7, altura: 181, categorias: c1 === c2 ? [c1] : [c1, c2], ya_existe: false },
       { ids: ['d2'], documento: '32000222', apellido: 'Suárez', nombre: 'Lucas', nacimiento: '1989-11-02', camiseta: null, categorias: [c1], ya_existe: false }] }];
   }
   function cargarRecibidos() {
@@ -667,7 +667,7 @@
     return h + ST.rec.map(function (g, i) {
       var filas = g.jugadores.map(function (x, k) {
         var aviso = x.ya_existe ? '<div class="sm" style="color:var(--acc2);margin-top:4px">⚠️ Ese DNI ya está en la liga' + (x.ya_nombre ? ' (' + esc(x.ya_nombre) + ')' : '') + ': se le suman estas categorías, no se duplica.</div>' : '';
-        return '<div class="card" style="margin:8px 0"><div class="fila"><span><b>' + esc(x.apellido + ' ' + x.nombre) + '</b><br><span class="muted sm">DNI ' + esc(x.documento) + ' · ' + esc(fechaCorta(x.nacimiento)) + (x.camiseta != null ? ' · #' + x.camiseta : '') + '</span></span>' +
+        return '<div class="card" style="margin:8px 0"><div class="fila"><span><b>' + esc(x.apellido + ' ' + x.nombre) + '</b><br><span class="muted sm">DNI ' + esc(x.documento) + ' · ' + esc(fechaCorta(x.nacimiento)) + (x.camiseta != null ? ' · #' + x.camiseta : '') + (x.altura ? ' · ' + x.altura + ' cm' : '') + '</span></span>' +
           '<button class="mini mal" data-a="recQuitar" data-i="' + i + '" data-j="' + k + '" type="button">Quitar</button></div>' +
           '<div class="chips" style="padding:8px 0 0;margin:0">' + x.categorias.map(function (c) { return '<span class="chip on" style="height:30px;font-size:12.5px;pointer-events:none">' + esc(c) + '</span>'; }).join('') + '</div>' + aviso + '</div>';
       }).join('');
@@ -1244,7 +1244,7 @@
             var ct = cats().filter(function (c) { return c.nombre === cn; })[0]; if (!ct) return;
             var eq = D.vista_equipos.filter(function (e) { return e.categoria_id === ct.id && kClub(e.nombre) === kClub(g.club); })[0];
             if (!eq) { var base = D.vista_equipos.filter(function (e) { return kClub(e.nombre) === kClub(g.club); })[0]; eq = { id: uid(), categoria_id: ct.id, nombre: g.club, color_principal: base ? base.color_principal : '#ff8a4c', color_alternativo: base ? base.color_alternativo : '#ffffff', logo_url: base ? base.logo_url : null }; D.vista_equipos.push(eq); }
-            if (!D.vista_jugadores.some(function (j) { return j.id === jid && j.equipo_id === eq.id; })) D.vista_jugadores.push({ id: jid, liga_id: ligaId(), nombre: x.nombre, apellido: x.apellido, nombre_completo: x.nombre + ' ' + x.apellido, altura_cm: null, equipo_id: eq.id, equipo_nombre: eq.nombre, categoria_id: ct.id, camiseta_habitual: x.camiseta });
+            if (!D.vista_jugadores.some(function (j) { return j.id === jid && j.equipo_id === eq.id; })) D.vista_jugadores.push({ id: jid, liga_id: ligaId(), nombre: x.nombre, apellido: x.apellido, nombre_completo: x.nombre + ' ' + x.apellido, altura_cm: x.altura || null, equipo_id: eq.id, equipo_nombre: eq.nombre, categoria_id: ct.id, camiseta_habitual: x.camiseta });
           });
           PRIV[jid] = PRIV[jid] || { doc: x.documento, nac: x.nacimiento, hab: 'si' }; n++;
         });

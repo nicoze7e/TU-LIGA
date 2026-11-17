@@ -56,6 +56,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
   <div id="form" hidden>
     <div class="paso">
       <h2><span class="num">1</span>Tu club</h2>
+      <p class="ayuda"><a href="guia-club.html" style="color:var(--acc)">¿Primera vez? Mirá la guía de 1 minuto →</a></p>
       <label for="club">Elegí tu club</label>
       <select id="club"></select>
       <div id="nuevoClub" hidden>
@@ -75,8 +76,8 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
         <button class="btn" id="verPegar" type="button">📋 Pegar desde Excel</button>
       </div>
       <div id="cajaPegar" hidden style="margin-top:12px">
-        <p class="nota">Pegá las filas con estas columnas, en este orden: <b>DNI · Apellido · Nombre · Nacimiento (dd/mm/aaaa) · Camiseta (opcional) · Categorías (separadas por coma)</b>.</p>
-        <textarea id="pegado" placeholder="30111222	Gómez	Leo	05/06/1992	9	+20, +30"></textarea>
+        <p class="nota">Pegá las filas con estas columnas, en este orden: <b>DNI · Apellido · Nombre · Nacimiento (dd/mm/aaaa)</b> y después, en cualquier orden, <b>camiseta</b>, <b>altura en cm</b> y <b>categorías</b> (separadas por coma). Camiseta y altura son opcionales.</p>
+        <textarea id="pegado" placeholder="30111222	Gómez	Leo	05/06/1992	9	182	+20, +30"></textarea>
         <div style="display:flex;gap:10px;margin-top:8px"><button class="btn pri mini" id="usarPegado" type="button">Cargar filas</button><button class="btn mini" id="cerrarPegar" type="button">Cerrar</button></div>
         <div class="err" id="errPegar"></div>
       </div>
@@ -115,7 +116,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     return e;
   }
   function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
-  function jugadorVacio() { return { documento: '', apellido: '', nombre: '', nacimiento: '', camiseta: '', categorias: [] }; }
+  function jugadorVacio() { return { documento: '', apellido: '', nombre: '', nacimiento: '', camiseta: '', altura: '', categorias: [] }; }
 
   /* ---------- borrador (por si se cierra la pestaña): solo en este celular ---------- */
   function guardarBorrador() { try { localStorage.setItem('tl_form_' + SLUG, JSON.stringify({ club: $('club').value, nuevo: $('clubNuevo').value, J: J })); } catch (e) { /* sin almacenamiento */ } }
@@ -145,7 +146,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
         el('div', { class: 'cab' }, [el('b', { text: 'Jugador ' + (i + 1) }), el('button', { class: 'btn mini', type: 'button', text: 'Quitar', on: { click: function () { J.splice(i, 1); if (!J.length) J.push(jugadorVacio()); guardarBorrador(); pintar(); } } })]),
         el('div', { class: 'fila2' }, [campo('Apellido', 'apellido', { maxlength: 60 }), campo('Nombre', 'nombre', { maxlength: 60 })]),
         el('div', { class: 'fila3' }, [campo('DNI (solo números)', 'documento', { inputmode: 'numeric', maxlength: 11 }), campo('Camiseta (opcional)', 'camiseta', { inputmode: 'numeric', maxlength: 2 })]),
-        campo('Fecha de nacimiento', 'nacimiento', { type: 'date', min: '1930-01-01' }),
+        el('div', { class: 'fila2' }, [campo('Fecha de nacimiento', 'nacimiento', { type: 'date', min: '1930-01-01' }), campo('Altura en cm (opcional)', 'altura', { inputmode: 'numeric', maxlength: 3, placeholder: 'Ej.: 182' })]),
         el('label', { text: 'Categorías en las que juega (una o varias)' }), chips,
         propias.length ? el('p', { class: 'nota', text: 'Las de tu club van primero.' }) : el('span')
       ]));
@@ -169,6 +170,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
       if (!/^\d{4}-\d{2}-\d{2}$/.test(j.nacimiento)) m.push('falta la fecha de nacimiento');
       if (!j.categorias.length) m.push('elegí al menos una categoría');
       if (j.camiseta && !/^\d{1,2}$/.test(j.camiseta)) m.push('la camiseta va de 0 a 99');
+      if (j.altura && (!/^\d{3}$/.test(j.altura) || +j.altura < 120 || +j.altura > 250)) m.push('la altura va de 120 a 250 cm (por ejemplo 182)');
       if (m.length) { j._mal = true; errores.push('Jugador ' + (i + 1) + ': ' + m.join(', ') + '.'); }
     });
     if (!hay) errores.push('Agregá al menos un jugador.');
@@ -180,7 +182,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     var v = validar(); $('error').textContent = v.errores.slice(0, 8).join('\n'); pintar();
     if (v.errores.length) { var m = document.querySelector('.card.mal'); if (m) m.scrollIntoView({ behavior: 'smooth', block: 'center' }); else window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     var filas = J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).map(function (j) {
-      return { documento: limpiarDni(j.documento), apellido: j.apellido.trim(), nombre: j.nombre.trim(), nacimiento: j.nacimiento, camiseta: j.camiseta || null, categorias: j.categorias };
+      return { documento: limpiarDni(j.documento), apellido: j.apellido.trim(), nombre: j.nombre.trim(), nacimiento: j.nacimiento, camiseta: j.camiseta || null, altura: j.altura || null, categorias: j.categorias };
     });
     enviando = true; $('enviar').disabled = true; $('enviar').textContent = 'Enviando…';
     rpc('form_enviar', { p_slug: SLUG, p_club: v.club, p_nuevo: $('club').value === NUEVO, p_jugadores: filas }).then(function (r) {
@@ -202,16 +204,18 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
   }
   function usarPegado() {
-    var tx = $('pegado').value.split(/\r?\n/).filter(function (l) { return l.trim(); }), nuevos = [], malas = [];
+    var tx = $('pegado').value.split(/\r?\n/).filter(function (l) { return l.trim(); }), nuevos = [];
     var permitidas = D.cats.map(norm);
     tx.forEach(function (l, i) {
       var c = l.split('\t').map(function (x) { return x.trim(); });
       if (!/\d/.test(c[0] || '') && i === 0) return;                      // encabezado
-      var cams = '', cs = c[4] || '';
-      if (c.length >= 6) { cams = c[4]; cs = c[5]; } else if (c.length === 5 && !/^\d{0,2}$/.test(c[4])) { cams = ''; cs = c[4]; } else if (c.length === 5) { cams = c[4]; cs = ''; }
+      if (!c[0]) return;
+      var cam = '', alt = '', cs = '';
+      c.slice(4).forEach(function (x) {                                   // desde la 5.ª columna: camiseta (0 a 99), altura (120 a 250) o categorías, en cualquier orden
+        if (/^\d{1,2}$/.test(x)) cam = x; else if (/^(1[2-9]\d|2[0-4]\d)$/.test(x)) alt = x; else if (x) cs = x;
+      });
       var cats = cs.split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { var k = permitidas.indexOf(norm(x)); return k >= 0 ? D.cats[k] : null; }).filter(Boolean);
-      if (!c[0]) { malas.push(i + 1); return; }
-      nuevos.push({ documento: c[0], apellido: c[1] || '', nombre: c[2] || '', nacimiento: fechaIso(c[3]), camiseta: /^\d{1,2}$/.test(cams) ? cams : '', categorias: cats.filter(function (x, k, a) { return a.indexOf(x) === k; }) });
+      nuevos.push({ documento: c[0], apellido: c[1] || '', nombre: c[2] || '', nacimiento: fechaIso(c[3]), camiseta: cam, altura: alt, categorias: cats.filter(function (x, k, a) { return a.indexOf(x) === k; }) });
     });
     if (!nuevos.length) { $('errPegar').textContent = 'No encontré filas para cargar.'; return; }
     J = J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).concat(nuevos);

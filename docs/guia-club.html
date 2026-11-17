@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TU LIGA · Guía para clubes</title>
+<meta name="description" content="Cómo cargar el plantel de tu club en 5 pasos, desde el celular.">
+<meta name="theme-color" content="#0f141a">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#0f141a;--panel:#19212a;--panel2:#232c36;--ink:#e9edf1;--muted:#98a5b2;--line:#2c3743;--acc:#ff8a4c;--ok:#37c978;--on-acc:#1c0f07;--f:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fd:"Barlow Condensed","Arial Narrow",sans-serif}
+@media (prefers-color-scheme:light){:root{--bg:#eceff3;--panel:#fff;--panel2:#f4f6f9;--ink:#141b24;--muted:#586471;--line:#d2d8df;--acc:#c2410c;--on-acc:#fff}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 var(--f);overflow-x:hidden}
+a{color:inherit}
+.w{max-width:640px;margin:0 auto;padding:0 18px}
+header.top{border-bottom:1px solid var(--line)}
+header.top .w{display:flex;align-items:center;gap:10px;height:56px}
+header.top img{width:28px;height:28px}header.top b{font:700 20px var(--fd);letter-spacing:.03em}
+header.top a.v{margin-left:auto;font-size:14px;color:var(--muted);text-decoration:none}
+.hero{padding:34px 0 18px;text-align:center}
+.hero .t{display:inline-block;font:600 13px var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.hero h1{font:700 clamp(36px,9vw,52px)/1.05 var(--fd);margin:10px 0 10px}
+.hero p{color:var(--muted);margin:0 auto;max-width:460px}
+.lista{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin:20px 0}
+.lista h2{font:700 22px var(--fd);margin:0 0 8px}
+.lista ul{margin:0;padding-left:20px;color:var(--muted)}
+.lista li{margin:3px 0}.lista li b{color:var(--ink)}
+.paso{margin:26px 0}
+.cab{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.n{flex:none;width:42px;height:42px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font:700 22px var(--fd)}
+.cab h3{font:700 25px/1.1 var(--fd);margin:0}
+.paso>p{margin:0 0 12px;color:var(--muted)}
+/* mini pantallas */
+.tel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;max-width:340px;margin:0 auto}
+.tel .barra{height:5px;width:60px;background:var(--line);border-radius:3px;margin:0 auto 12px}
+.m-in{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);padding:0 12px;display:flex;align-items:center;color:var(--muted);font-size:15px;margin:6px 0}
+.m-in.v{color:var(--ink)}
+.m-lbl{font-size:12px;color:var(--muted);margin-top:8px}
+.m-chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-weight:600;font-size:15px;margin:4px 6px 0 0}
+.m-chip.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.m-btn{height:46px;border-radius:12px;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-weight:700;margin-top:10px}
+.burbuja{background:#1f3b2e;color:#e8fff2;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:15px;margin-left:30px}
+@media (prefers-color-scheme:light){.burbuja{background:#d9fdd3;color:#0b3d1d}}
+.burbuja u{color:#53bdeb;word-break:break-all}
+.flecha{color:var(--acc);font-weight:700;text-align:center;font-size:20px;margin:6px 0}
+.ok{background:rgba(55,201,120,.12);border:1px solid var(--ok);border-radius:14px;padding:14px;text-align:center}
+.ok b{display:block;font:700 24px var(--fd)}
+.tip{background:var(--panel2);border-left:4px solid var(--acc);border-radius:10px;padding:12px 14px;margin:12px 0 0;font-size:15.5px}
+.despues{display:grid;gap:8px;margin:12px 0}
+.despues>div{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.despues span{font-size:24px}
+.cta{text-align:center;padding:26px 0 8px}
+.btn{display:inline-flex;align-items:center;min-height:54px;padding:0 28px;border-radius:14px;background:var(--acc);color:var(--on-acc);font:700 18px var(--f);text-decoration:none}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 16px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:700;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::after{content:"＋";color:var(--acc)}details[open] summary::after{content:"－"}
+details p{margin:0 0 14px;color:var(--muted)}
+h2.s{font:700 28px var(--fd);margin:34px 0 10px}
+footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
+</style>
+</head>
+<body>
+<header class="top"><div class="w"><img src="logo.svg" alt=""><b>TU LIGA</b><a class="v" href="guia.html">Guía completa</a></div></header>
+<main class="w">
+  <div class="hero">
+    <span class="t">Guía para clubes</span>
+    <h1>Cargá el plantel de tu club en 5 pasos</h1>
+    <p>Se hace una sola vez, desde el celular. ⏱ Unos 5 minutos.</p>
+  </div>
+
+  <div class="lista">
+    <h2>Tené a mano, por cada jugador</h2>
+    <ul>
+      <li><b>DNI</b></li>
+      <li><b>Apellido y nombre</b></li>
+      <li><b>Fecha de nacimiento</b></li>
+      <li><b>Altura</b> en cm (opcional)</li>
+      <li><b>Camiseta</b> (opcional)</li>
+      <li><b>Categorías</b> en las que juega (una o varias)</li>
+    </ul>
+  </div>
+
+  <div class="paso">
+    <div class="cab"><div class="n">1</div><h3>Abrí el enlace</h3></div>
+    <p>La coordinación te lo manda por WhatsApp. Es el mismo enlace para todos los clubes.</p>
+    <div class="tel"><div class="burbuja">📝 Plantel de tu club:<br><u>…/formulario.html</u></div></div>
+  </div>
+
+  <div class="paso">
+    <div class="cab"><div class="n">2</div><h3>Elegí tu club</h3></div>
+    <p>Buscalo en la lista. Si tu club no aparece, elegí la última opción y escribí el nombre.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-lbl">Elegí tu club</div><div class="m-in v">Kinder Bologna ▾</div>
+      <div class="m-lbl">Si no está en la lista:</div><div class="m-in">➕ Mi club no está en la lista</div>
+    </div>
+  </div>
+
+  <div class="paso">
+    <div class="cab"><div class="n">3</div><h3>Cargá cada jugador</h3></div>
+    <p>Un jugador por ficha. Los campos en rojo te avisan si falta algo.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-lbl">Apellido · Nombre</div><div class="m-in v">Gómez · Leo</div>
+      <div class="m-lbl">DNI · Camiseta (opcional)</div><div class="m-in v">30111222 · 9</div>
+      <div class="m-lbl">Fecha de nacimiento · Altura en cm (opcional)</div><div class="m-in v">05/06/1992 · 182</div>
+    </div>
+    <div class="tip">➕ Para sumar otro jugador tocá <b>+ Agregar jugador</b>.<br>📋 ¿Tenés la lista en Excel? Tocá <b>Pegar desde Excel</b>, pegá las filas y listo.</div>
+  </div>
+
+  <div class="paso">
+    <div class="cab"><div class="n">4</div><h3>Marcá sus categorías</h3></div>
+    <p>Tocá <b>todas</b> las categorías en las que juega ese jugador. Pueden ser una, dos o más. Cada jugador se carga una sola vez.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-lbl">Categorías en las que juega</div>
+      <span class="m-chip on">+20</span><span class="m-chip on">+30</span><span class="m-chip">+40</span>
+      <div class="m-lbl" style="margin-top:10px">👆 Leo juega en +20 y en +30: marcadas las dos.</div>
+    </div>
+  </div>
+
+  <div class="paso">
+    <div class="cab"><div class="n">5</div><h3>Enviá el plantel</h3></div>
+    <p>Tocá <b>Enviar plantel</b>. Vas a ver el cartel de confirmación.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-btn">Enviar plantel (12)</div>
+      <div class="flecha">↓</div>
+      <div class="ok"><b>✅ ¡Recibido!</b><span style="font-size:14.5px;color:var(--muted)">Queda a la espera de la confirmación de la coordinación.</span></div>
+    </div>
+  </div>
+
+  <h2 class="s">¿Y después?</h2>
+  <div class="despues">
+    <div><span>📥</span><div><b>La coordinación revisa</b><br><span style="font-size:15px;color:var(--muted)">Mira tu plantel y confirma los datos.</span></div></div>
+    <div><span>✅</span><div><b>Lo aprueba</b><br><span style="font-size:15px;color:var(--muted)">Tu club y tus jugadores entran a la liga.</span></div></div>
+    <div><span>🏆</span><div><b>Ya estás en la liga</b><br><span style="font-size:15px;color:var(--muted)">Aparecen en la tabla, el fixture y las estadísticas.</span></div></div>
+  </div>
+  <div class="tip">🔒 Tu DNI y tu fecha de nacimiento no se publican: los ve solo la coordinación. Lo público es nombre, camiseta, altura y estadísticas.</div>
+
+  <h2 class="s">Preguntas rápidas</h2>
+  <details><summary>Me equivoqué en un dato</summary><p>Avisale a la coordinación: puede corregirlo o descartar tu envío para que lo cargues de nuevo.</p></details>
+  <details><summary>Me quedé a medias</summary><p>No pasa nada: lo que cargaste queda guardado en ese celular. Volvé a abrir el mismo enlace y seguí.</p></details>
+  <details><summary>Un jugador juega en dos categorías</summary><p>Cargalo una sola vez y marcá las dos categorías en su ficha.</p></details>
+  <details><summary>No sé la altura o la camiseta</summary><p>Dejalas vacías: son opcionales. Se pueden completar después.</p></details>
+  <details><summary>Me dice que el DNI está repetido</summary><p>Ese jugador ya está en tu lista. Cada DNI se carga una vez.</p></details>
+
+  <div class="cta"><a class="btn" href="formulario.html">📝 Ir al formulario</a></div>
+</main>
+<footer>Hecho con <b>TU LIGA</b> · <a href="index.html">Ver la liga</a> · <a href="guia.html">Guía completa</a></footer>
+</body>
+</html>
