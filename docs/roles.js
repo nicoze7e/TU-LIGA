@@ -115,7 +115,7 @@
   function refrescar(cat) { TL().recargar(); }
 
   /* ---------- ganchos hacia app.js ---------- */
-  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-clubes', 'g-club', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
+  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-recibidos', 'g-clubes', 'g-club', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
   function tab(k, def) {
     if (k === 'planilla') return 'planilla';
     if (k === 'gestion' || /^g-/.test(k)) return 'gestion';
@@ -277,6 +277,7 @@
       case 'g-fixture': return vGFixture(r.q);
       case 'g-partido': return vGPartido(p[1], r.q);
       case 'g-armar': return vGArmar();
+      case 'g-recibidos': return vGRecibidos();
       case 'g-clubes': return vGClubes();
       case 'g-club': return vGClub(p[1]);
       case 'g-equipos': return vGEquipos(r.q);
@@ -545,11 +546,14 @@
     return '<div class="chips">' + cats().map(function (c) { return '<button class="chip' + (c.id === gcat() ? ' on' : '') + '" data-a="gcat" data-v="' + c.id + '" type="button">' + esc(c.nombre) + '</button>'; }).join('') + '</div>';
   }
   function vGestion() {
+    if (!ST.rec && !ST.recCargando) { ST.recCargando = true; cargarRecibidos().then(function () { ST.recCargando = false; TL().pintar(true); }); }
+    var nRec = (ST.rec || []).reduce(function (a, g) { return a + g.jugadores.length; }, 0), nClubRec = (ST.rec || []).length;
+    var recCard = '<a class="card gcard" href="#/g-recibidos"><span><b>📥 Recibidos de los clubes</b>' + (nRec ? ' <span class="badge vivo" style="margin-left:6px">' + nRec + '</span>' : '') + '<br><span class="muted sm">Lo que mandan los clubes por el formulario espera tu confirmación para entrar a la liga.</span><br><span class="sm muted">' + (ST.rec ? (nRec ? nClubRec + (nClubRec === 1 ? ' club' : ' clubes') + ' · ' + nRec + ' jugadores esperando' : 'Nada pendiente') : 'Revisando…') + '</span></span><span>›</span></a>';
     var cat = gcat(), np = partidos(cat).length, ne = equipos(cat).length, nj = equipos(cat).reduce(function (a, e) { return a + jugadores(e.id).length; }, 0);
     var prox = partidos(cat).filter(function (p) { return p.estado === 'programado'; })[0];
     return '<h1>Gestión de la liga</h1>' + nube() + chipsCat() +
       '<a class="card gcard" href="#/g-fixture"><span><b>📅 Fixture</b><br><span class="muted sm">Armar y cambiar los partidos. La web y los planilleros lo siguen.</span><br><span class="sm muted">' + np + ' partidos' + (prox ? ' · próximo: ' + esc(new Date(prox.fecha_hora).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })) : '') + '</span></span><span>›</span></a>' +
-      '<a class="card gcard" href="#/g-clubes"><span><b>🛡️ Clubes y jugadores</b><br><span class="muted sm">Cada club con sus categorías y sus jugadores habilitados en cada una.</span><br><span class="sm muted">' + ne + ' equipos · ' + nj + ' jugadores</span></span><span>›</span></a>' +
+      recCard + '<a class="card gcard" href="#/g-clubes"><span><b>🛡️ Clubes y jugadores</b><br><span class="muted sm">Cada club con sus categorías y sus jugadores habilitados en cada una.</span><br><span class="sm muted">' + ne + ' equipos · ' + nj + ' jugadores</span></span><span>›</span></a>' +
       '<div class="ayuda">✏️ <b>¿Hay que corregir un partido?</b> Entrá a <b>Fixture</b> como siempre: en los partidos cerrados te aparece el botón <i>Corregir partido</i>.</div><p class="centro"><a class="mini" href="#/g-cuentas">👥 Cuentas de la liga</a> <a class="mini" href="#/g-liga">⚙️ Mi liga</a></p>';
   }
 
@@ -639,6 +643,40 @@
     return out.sort(function (a, b) { return (a.j.apellido + a.j.nombre) < (b.j.apellido + b.j.nombre) ? -1 : 1; });
   }
   function nomCat(id) { var c = cats().filter(function (x) { return x.id === id; })[0]; return c ? c.nombre : ''; }
+  /* ---- recibidos de los clubes (formulario) ---- */
+  function urlFormulario() { var u = new URL('formulario.html', location.href); u.search = ''; u.hash = ''; return u.href; }
+  function idsDe(g) { var o = []; g.jugadores.forEach(function (x) { o = o.concat(x.ids); }); return o; }
+  function fechaCorta(iso) { return String(iso || '').slice(0, 10).split('-').reverse().join('/'); }
+  function muestraRecibidos() {                       // en la demo se muestra un envío de ejemplo para ver cómo funciona
+    var cn = cats().map(function (c) { return c.nombre; }), c1 = cn[0], c2 = cn[1] || cn[0];
+    return [{ club: 'Club Ejemplo', club_nuevo: true, enviado: new Date().toISOString(), jugadores: [
+      { ids: ['d1'], documento: '31000111', apellido: 'Pérez', nombre: 'Martín', nacimiento: '1991-03-12', camiseta: 7, categorias: c1 === c2 ? [c1] : [c1, c2], ya_existe: false },
+      { ids: ['d2'], documento: '32000222', apellido: 'Suárez', nombre: 'Lucas', nacimiento: '1989-11-02', camiseta: null, categorias: [c1], ya_existe: false }] }];
+  }
+  function cargarRecibidos() {
+    if (!REAL) { if (!ST.rec) ST.rec = muestraRecibidos(); return Promise.resolve(); }
+    return SB().rpc('recibidos_listar', { p_liga: ligaId() }).then(function (r) { if (r.error) throw r.error; ST.rec = r.data || []; ST.recErr = null; }).catch(function (e) { ST.rec = []; ST.recErr = msgError(e); });
+  }
+  function vGRecibidos() {
+    if (!ST.rec) { cargarRecibidos().then(function () { TL().pintar(true); }); return '<h1>Recibidos</h1><div class="sk"><i></i><i></i></div>'; }
+    var h = '<a class="sm" href="#/gestion" style="color:var(--acc2)">‹ Gestión</a><h1 style="margin-top:6px">Recibidos de los clubes</h1>' + nube() +
+      '<div class="ayuda">📝 <b>Enlace del formulario</b> (mandalo por WhatsApp a todos los clubes):<br><span class="sm" style="word-break:break-all">' + esc(urlFormulario()) + '</span><br><button class="mini" data-a="copiarForm" type="button" style="margin-top:8px">📋 Copiar enlace</button></div>';
+    if (ST.recErr) h += '<div class="err">' + esc(ST.recErr) + '</div>';
+    if (!ST.rec.length) return h + '<p class="vacio">No hay nada esperando. Cuando un club envíe su plantel, aparece acá para que lo confirmes.</p>';
+    h += '<p class="sm muted">Revisá cada club. <b>Aprobar</b> lo suma a la liga (y a la hoja de Drive). <b>Rechazar</b> lo descarta. Con “Quitar” sacás a un jugador puntual.</p>';
+    return h + ST.rec.map(function (g, i) {
+      var filas = g.jugadores.map(function (x, k) {
+        var aviso = x.ya_existe ? '<div class="sm" style="color:var(--acc2);margin-top:4px">⚠️ Ese DNI ya está en la liga' + (x.ya_nombre ? ' (' + esc(x.ya_nombre) + ')' : '') + ': se le suman estas categorías, no se duplica.</div>' : '';
+        return '<div class="card" style="margin:8px 0"><div class="fila"><span><b>' + esc(x.apellido + ' ' + x.nombre) + '</b><br><span class="muted sm">DNI ' + esc(x.documento) + ' · ' + esc(fechaCorta(x.nacimiento)) + (x.camiseta != null ? ' · #' + x.camiseta : '') + '</span></span>' +
+          '<button class="mini mal" data-a="recQuitar" data-i="' + i + '" data-j="' + k + '" type="button">Quitar</button></div>' +
+          '<div class="chips" style="padding:8px 0 0;margin:0">' + x.categorias.map(function (c) { return '<span class="chip on" style="height:30px;font-size:12.5px;pointer-events:none">' + esc(c) + '</span>'; }).join('') + '</div>' + aviso + '</div>';
+      }).join('');
+      return '<div class="pw" style="margin-top:14px"><div class="fila"><h2 style="margin:0">' + esc(g.club) + '</h2><span class="pill' + (g.club_nuevo ? '' : ' ok') + '">' + (g.club_nuevo ? '🆕 Club nuevo' : 'Club de la liga') + '</span></div>' +
+        '<div class="sm muted">Enviado el ' + esc(fechaCorta(g.enviado)) + ' · ' + g.jugadores.length + ' jugadores · espera tu confirmación</div>' + filas +
+        '<div class="grid2" style="margin-top:10px"><button class="btn p" data-a="recAprobar" data-i="' + i + '" type="button">✅ Aprobar club</button><button class="btn mal" data-a="recRechazar" data-i="' + i + '" type="button">Rechazar</button></div></div>';
+    }).join('');
+  }
+
   function vGClubes() {
     var q = kClub(ST.cq || ''), lista = clubes().filter(function (c) { return !q || c.key.indexOf(q) >= 0; });
     var h = '<h1>Clubes y jugadores</h1>' + nube() +
@@ -911,6 +949,22 @@
       okr(await SB().from('equipos').insert({ categoria_id: cat, nombre: c.nombre, color_principal: c.color, color_alternativo: c.alt || base.color_alternativo, logo_url: c.logo || null }));
       TL().toast('Categoría sumada al club. Habilitá a sus jugadores con los botones.'); await refrescarReal();
     },
+    recAprobar: async function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
+      confirmar('¿Aprobar a <b>' + esc(g.club) + '</b> con ' + g.jugadores.length + ' jugadores? Entran a la liga y, en unos minutos, a la hoja de Drive.', 'Aprobar', async function () {
+        try { var r = okr(await SB().rpc('recibidos_resolver', { p_liga: ligaId(), p_ids: idsDe(g), p_aprobar: true })); TL().toast('Aprobado ✅ ' + r.jugadores_nuevos + ' jugadores nuevos' + (r.equipos_nuevos ? ' · ' + r.equipos_nuevos + ' equipo(s) creados' : '') + '.'); ST.rec = null; await refrescarReal(); } catch (e) { TL().toast(msgError(e)); }
+      });
+    },
+    recRechazar: async function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
+      confirmar('¿Rechazar lo que mandó <b>' + esc(g.club) + '</b>? No entra a la liga.', 'Rechazar', async function () {
+        try { okr(await SB().rpc('recibidos_resolver', { p_liga: ligaId(), p_ids: idsDe(g), p_aprobar: false })); TL().toast('Rechazado.'); ST.rec = null; TL().pintar(true); } catch (e) { TL().toast(msgError(e)); }
+      });
+    },
+    recQuitar: async function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i], x = g && g.jugadores[+b.dataset.j]; if (!x) return;
+      try { okr(await SB().rpc('recibidos_resolver', { p_liga: ligaId(), p_ids: x.ids, p_aprobar: false })); TL().toast('Jugador quitado de lo recibido.'); ST.rec = null; TL().pintar(true); } catch (e) { TL().toast(msgError(e)); }
+    },
     toggleCat: async function (b) {
       var jid = b.dataset.jug, eq = b.dataset.eq, on = b.classList.contains('on');
       var c = clubes().filter(function (k) { return k.equipos.some(function (e) { return e.id === eq; }); })[0];
@@ -1174,6 +1228,36 @@
       ST.pegar = false;
       if (n) { drive('BASE › Jugadores', n + ' filas agregadas (lista pegada)'); TL().toast(n + ' jugadores agregados. Completá camiseta y altura donde falte.'); } else TL().toast('No encontré jugadores en el texto.');
       TL().recargar();
+    },
+    copiarForm: function () {
+      var u = urlFormulario();
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(function () { TL().toast('Enlace copiado ✅'); }, function () { TL().toast(u); }); else TL().toast(u);
+    },
+    recAprobar: function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
+      confirmar('¿Aprobar a <b>' + esc(g.club) + '</b> con ' + g.jugadores.length + ' jugadores? Entran a la liga y, en unos minutos, a la hoja de Drive.', 'Aprobar', function () {
+        var n = 0;
+        g.jugadores.forEach(function (x) {
+          var jid = null; Object.keys(PRIV).forEach(function (k) { if (PRIV[k] && PRIV[k].doc === x.documento) jid = k; });
+          if (!jid) jid = uid();
+          x.categorias.forEach(function (cn) {
+            var ct = cats().filter(function (c) { return c.nombre === cn; })[0]; if (!ct) return;
+            var eq = D.vista_equipos.filter(function (e) { return e.categoria_id === ct.id && kClub(e.nombre) === kClub(g.club); })[0];
+            if (!eq) { var base = D.vista_equipos.filter(function (e) { return kClub(e.nombre) === kClub(g.club); })[0]; eq = { id: uid(), categoria_id: ct.id, nombre: g.club, color_principal: base ? base.color_principal : '#ff8a4c', color_alternativo: base ? base.color_alternativo : '#ffffff', logo_url: base ? base.logo_url : null }; D.vista_equipos.push(eq); }
+            if (!D.vista_jugadores.some(function (j) { return j.id === jid && j.equipo_id === eq.id; })) D.vista_jugadores.push({ id: jid, liga_id: ligaId(), nombre: x.nombre, apellido: x.apellido, nombre_completo: x.nombre + ' ' + x.apellido, altura_cm: null, equipo_id: eq.id, equipo_nombre: eq.nombre, categoria_id: ct.id, camiseta_habitual: x.camiseta });
+          });
+          PRIV[jid] = PRIV[jid] || { doc: x.documento, nac: x.nacimiento, hab: 'si' }; n++;
+        });
+        ST.rec.splice(+b.dataset.i, 1); drive('BASE › Jugadores', n + ' jugadores aprobados de ' + g.club); TL().toast('Aprobado ✅ ' + n + ' jugadores.'); TL().recargar();
+      });
+    },
+    recRechazar: function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
+      confirmar('¿Rechazar lo que mandó <b>' + esc(g.club) + '</b>? No entra a la liga.', 'Rechazar', function () { ST.rec.splice(+b.dataset.i, 1); TL().toast('Rechazado.'); TL().pintar(true); });
+    },
+    recQuitar: function (b) {
+      var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return; g.jugadores.splice(+b.dataset.j, 1);
+      if (!g.jugadores.length) ST.rec.splice(+b.dataset.i, 1); TL().toast('Jugador quitado de lo recibido.'); TL().pintar(true);
     },
     jcat: function (b) { b.classList.toggle('on'); },
     gjug: function (b) {

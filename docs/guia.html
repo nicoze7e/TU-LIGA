@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TU LIGA · Guía de uso</title>
+<meta name="description" content="TU LIGA: la liga de básquet en el celular de todos. Tabla, fixture y estadísticas en vivo; plantel de cada club con confirmación del coordinador.">
+<meta name="theme-color" content="#0f141a">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#0f141a;--panel:#19212a;--panel2:#232c36;--ink:#e9edf1;--muted:#98a5b2;--line:#2c3743;--acc:#ff8a4c;--acc2:#ffb488;--ok:#37c978;--on-acc:#1c0f07;--f:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fd:"Barlow Condensed","Arial Narrow",sans-serif}
+@media (prefers-color-scheme:light){:root{--bg:#eceff3;--panel:#fff;--panel2:#f4f6f9;--ink:#141b24;--muted:#586471;--line:#d2d8df;--acc:#c2410c;--acc2:#9a3412;--on-acc:#fff}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 var(--f);overflow-x:hidden}
+a{color:inherit}
+.w{max-width:860px;margin:0 auto;padding:0 20px}
+header.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top .w{display:flex;align-items:center;gap:12px;height:58px;min-width:0}
+header.top b{white-space:nowrap}
+header.top img{width:30px;height:30px}
+header.top b{font:700 21px var(--fd);letter-spacing:.03em}
+header.top nav{margin-left:auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0}
+header.top nav a{white-space:nowrap;text-decoration:none;font-size:14px;color:var(--muted);padding:8px 10px;border-radius:10px}
+header.top nav a:hover{color:var(--ink);background:var(--panel)}
+.hero{padding:56px 0 40px;text-align:center}
+.hero .tag{display:inline-block;font:600 13px var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--acc);border:1px solid var(--line);border-radius:999px;padding:6px 14px;background:var(--panel)}
+.hero h1{font:700 clamp(40px,9vw,68px)/1.02 var(--fd);margin:18px 0 14px;letter-spacing:.01em}
+.hero h1 em{font-style:normal;color:var(--acc)}
+.hero p{color:var(--muted);max-width:560px;margin:0 auto 26px;font-size:19px}
+.btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 24px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 17px var(--f);text-decoration:none}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+section{padding:44px 0;border-top:1px solid var(--line)}
+section h2{font:700 clamp(28px,6vw,38px)/1.1 var(--fd);margin:0 0 8px}
+section>.w>p.lead{color:var(--muted);margin:0 0 26px;max-width:620px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}
+.card .ic{font-size:30px}
+.card h3{font:700 22px var(--fd);margin:8px 0 4px}
+.card p{margin:0;color:var(--muted);font-size:15.5px}
+.flujo{display:grid;gap:10px}
+.paso{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.paso .n{width:40px;height:40px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font:700 20px var(--fd)}
+.paso b{display:block;font-size:18px}
+.paso span{color:var(--muted);font-size:15.5px}
+.cinta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:6px 0 4px}
+.cinta .p{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:600;font-size:15px;text-align:center}
+.cinta .p.k{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.cinta .f{color:var(--acc);font-weight:700}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:10px 18px;font:600 16px var(--f);cursor:pointer;min-height:46px}
+.tabs button[aria-selected=true]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.panel[hidden]{display:none}
+.aviso{background:var(--panel2);border-left:4px solid var(--acc);border-radius:10px;padding:12px 16px;margin:14px 0 0;font-size:15.5px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 18px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:700;padding:15px 0;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::after{content:"＋";color:var(--acc)}details[open] summary::after{content:"－"}
+details p{margin:0 0 16px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:30px 0 60px;text-align:center;color:var(--muted);font-size:15px}
+code{background:var(--panel2);padding:2px 7px;border-radius:7px;font-size:.92em}
+</style>
+</head>
+<body>
+<header class="top"><div class="w"><img src="logo.svg" alt=""><b>TU LIGA</b>
+  <nav><a href="#que">Qué es</a><a href="#clubes">Clubes</a><a href="#coordinador">Coordinación</a><a href="#planilla">Planillero</a><a href="#faq">Preguntas</a></nav></div></header>
+
+<main>
+<div class="w hero">
+  <span class="tag">🏀 Básquet amateur</span>
+  <h1>La liga entera,<br><em>en el celular de todos</em></h1>
+  <p>Tabla, fixture, estadísticas y partidos en vivo. Cada club carga su plantel una sola vez y la coordinación lo confirma.</p>
+  <div class="btns"><a class="btn pri" href="index.html">Ver la liga →</a><a class="btn" href="formulario.html">📝 Cargar plantel de mi club</a></div>
+</div>
+
+<section id="que"><div class="w">
+  <h2>Qué es TU LIGA</h2>
+  <p class="lead">Una web para el celular, sin instalar nada y sin cuentas para mirar. Cada persona usa solo lo que necesita.</p>
+  <div class="grid">
+    <div class="card"><div class="ic">📱</div><h3>Público</h3><p>Entra y mira: tabla, fixture, jugadores y partidos en vivo. Sin registrarse.</p></div>
+    <div class="card"><div class="ic">🛡️</div><h3>Clubes</h3><p>Cargan su plantel con un formulario. Un jugador puede estar en varias categorías.</p></div>
+    <div class="card"><div class="ic">📋</div><h3>Planilleros</h3><p>Anotan el partido desde el celular, con reloj y estadísticas en tiempo real.</p></div>
+    <div class="card"><div class="ic">🛠️</div><h3>Coordinación</h3><p>Confirma lo que mandan los clubes, arma el fixture y corrige partidos.</p></div>
+  </div>
+</div></section>
+
+<section id="flujo"><div class="w">
+  <h2>Cómo viaja la información</h2>
+  <p class="lead">Nada entra a la liga sin que la coordinación lo apruebe.</p>
+  <div class="cinta">
+    <span class="p">📝 El club completa el formulario</span><span class="f">→</span>
+    <span class="p">📥 Queda <b>recibido</b>, a la espera</span><span class="f">→</span>
+    <span class="p k">✅ La coordinación aprueba</span><span class="f">→</span>
+    <span class="p">🏆 Entra a la liga</span><span class="f">→</span>
+    <span class="p">☁️ Se copia a la hoja de Drive</span>
+  </div>
+  <div class="aviso">🔒 Los datos privados (DNI y fecha de nacimiento) los ve solo la coordinación. En la web pública solo se muestran nombre, camiseta, altura y estadísticas.</div>
+</div></section>
+
+<section id="clubes"><div class="w">
+  <h2>Para clubes: cargar el plantel</h2>
+  <p class="lead">Se hace una vez, desde el celular o la compu. Toma unos minutos.</p>
+  <div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Abrí el enlace del formulario</b><span>Te lo manda la coordinación por WhatsApp. Es el mismo para todos los clubes.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>Elegí tu club</b><span>Aparece en la lista. Si no está, tocá <i>“Mi club no está en la lista”</i> y escribí el nombre.</span></div></div>
+    <div class="paso"><div class="n">3</div><div><b>Cargá cada jugador</b><span>DNI, apellido, nombre y fecha de nacimiento. La camiseta es opcional.</span></div></div>
+    <div class="paso"><div class="n">4</div><div><b>Marcá sus categorías</b><span>Cada jugador tiene sus propias categorías: tocá todas en las que juega. Puede ser más de una y figura una sola vez.</span></div></div>
+    <div class="paso"><div class="n">5</div><div><b>Tocá “Enviar plantel”</b><span>Aparece <b>¡Recibido!</b>. Tu plantel queda a la espera de la confirmación de la coordinación. No hace falta hacer nada más.</span></div></div>
+  </div>
+  <div class="aviso">💡 ¿Tenés la lista en Excel? Tocá <b>📋 Pegar desde Excel</b>, pegá las filas y listo. Columnas: DNI · Apellido · Nombre · Nacimiento · Camiseta (opcional) · Categorías.</div>
+  <div class="aviso">⏳ Si cerrás la pestaña sin enviar, tu lista queda guardada en ese celular para seguir después.</div>
+</div></section>
+
+<section id="coordinador"><div class="w">
+  <h2>Para la coordinación</h2>
+  <p class="lead">Una cuenta de la liga, compartida por quienes coordinan. Se entra con el botón 🔑 de arriba.</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-p="p1">📥 Aprobar clubes</button>
+    <button role="tab" aria-selected="false" data-p="p2">🛡️ Clubes y jugadores</button>
+    <button role="tab" aria-selected="false" data-p="p3">📅 Fixture</button>
+    <button role="tab" aria-selected="false" data-p="p4">✏️ Corregir</button>
+  </div>
+  <div class="panel" id="p1"><div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Entrá a Gestión → Recibidos de los clubes</b><span>Un número rojo te avisa cuántos jugadores esperan.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>Revisá cada club</b><span>Ves sus jugadores, DNI, nacimiento y categorías. Si un DNI ya está en la liga, te avisa y no se duplica.</span></div></div>
+    <div class="paso"><div class="n">3</div><div><b>Aprobá o rechazá</b><span><b>Aprobar club</b> lo suma a la liga (crea el club y sus equipos por categoría si hacía falta). Con <b>Quitar</b> sacás a un jugador puntual.</span></div></div>
+  </div></div>
+  <div class="panel" id="p2" hidden><div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Gestión → Clubes y jugadores</b><span>Cada club con sus categorías y jugadores. Cada jugador figura una sola vez.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>Tocá una categoría para habilitar o quitar</b><span>Los chips de cada jugador muestran en qué categorías juega.</span></div></div>
+    <div class="paso"><div class="n">3</div><div><b>Logo y colores del club</b><span>Se cargan una vez y se ven en todas las categorías del club.</span></div></div>
+  </div></div>
+  <div class="panel" id="p3" hidden><div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Gestión → Fixture</b><span>Creá partidos con <i>“+ Nuevo partido”</i> o con <i>“Armar solo”</i>.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>El fixture es el único que manda</b><span>Los planilleros y la web pública lo siguen: si lo cambiás, se actualiza en todos.</span></div></div>
+  </div></div>
+  <div class="panel" id="p4" hidden><div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Abrí el partido cerrado en el Fixture</b><span>Ahí aparece el botón <i>Corregir partido</i>.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>Corregí la jugada</b><span>Las correcciones quedan registradas y el marcador se recalcula solo.</span></div></div>
+  </div></div>
+</div></section>
+
+<section id="planilla"><div class="w">
+  <h2>Para planilleros: Super Oficial</h2>
+  <p class="lead">Cada planillero tiene su cuenta (Planillero 1 a 5). Una sola sesión por cuenta, para que dos personas no anoten el mismo partido.</p>
+  <div class="flujo">
+    <div class="paso"><div class="n">1</div><div><b>Entrá con 🔑</b><span>Con la cuenta de planillero que te dio la coordinación.</span></div></div>
+    <div class="paso"><div class="n">2</div><div><b>Elegí el partido</b><span>Sale del fixture. Si falta plantel en algún equipo, te avisa para que lo resuelva la coordinación.</span></div></div>
+    <div class="paso"><div class="n">3</div><div><b>Empezá la planilla</b><span>Cargá quiénes juegan y anotá puntos, faltas, rebotes y demás con un toque. El reloj queda fijo arriba.</span></div></div>
+    <div class="paso"><div class="n">4</div><div><b>Cerrá el partido</b><span>El resultado y las estadísticas aparecen solos en la web pública y en la hoja de Drive.</span></div></div>
+  </div>
+</div></section>
+
+<section id="publico"><div class="w">
+  <h2>Para el público</h2>
+  <p class="lead">Entrás al enlace y listo. Abajo tenés cinco secciones.</p>
+  <div class="grid">
+    <div class="card"><div class="ic">🔴</div><h3>En vivo</h3><p>Los partidos que se están jugando, con el marcador al instante.</p></div>
+    <div class="card"><div class="ic">🏆</div><h3>Tabla</h3><p>Posiciones por categoría.</p></div>
+    <div class="card"><div class="ic">📅</div><h3>Fixture</h3><p>Todos los partidos y resultados.</p></div>
+    <div class="card"><div class="ic">👤</div><h3>Jugadores</h3><p>Estadísticas de cada jugador.</p></div>
+    <div class="card"><div class="ic">⚖️</div><h3>Comparar</h3><p>Dos jugadores o dos equipos, lado a lado.</p></div>
+  </div>
+  <div class="aviso">📲 <b>Tenerla como app:</b> en el celular, abrí el enlace y elegí <i>“Agregar a pantalla de inicio”</i> (iPhone: botón compartir ⤴; Android: menú ⋮).</div>
+</div></section>
+
+<section id="faq"><div class="w">
+  <h2>Preguntas frecuentes</h2>
+  <details><summary>¿Un jugador puede jugar en más de una categoría?</summary><p>Sí. Se carga una sola vez y se marcan todas sus categorías. Figura habilitado en cada una.</p></details>
+  <details><summary>¿Qué pasa después de enviar el formulario?</summary><p>Queda <b>recibido</b>, a la espera. La coordinación lo revisa y, cuando lo aprueba, el club y sus jugadores aparecen en la liga.</p></details>
+  <details><summary>Me equivoqué en un dato, ¿qué hago?</summary><p>Avisale a la coordinación. Puede corregirlo o rechazar el envío para que lo cargues de nuevo.</p></details>
+  <details><summary>¿Qué datos ve el público?</summary><p>Nombre, camiseta del partido, altura y estadísticas. El DNI y la fecha de nacimiento nunca se publican: solo los ve la coordinación.</p></details>
+  <details><summary>¿Mi club no está en la lista?</summary><p>Elegí <i>“Mi club no está en la lista”</i> y escribí el nombre. La coordinación lo da de alta al aprobar.</p></details>
+  <details><summary>¿Hay que instalar algo?</summary><p>No. Funciona desde el navegador del celular. Si querés, podés agregarla a la pantalla de inicio.</p></details>
+</div></section>
+</main>
+
+<footer><div class="w"><img src="logo.svg" alt="" width="22" height="22"><br>Hecho con <b>TU LIGA</b> · <a href="index.html">Ver la liga</a> · <a href="formulario.html">Plantel de mi club</a></div></footer>
+
+<script>
+(function(){
+  var tabs=document.querySelectorAll('.tabs button');
+  Array.prototype.forEach.call(tabs,function(b){b.addEventListener('click',function(){
+    Array.prototype.forEach.call(tabs,function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'),function(p){p.hidden=p.id!==b.dataset.p;});
+  });});
+})();
+</script>
+</body>
+</html>
