@@ -51,6 +51,31 @@ header.top a.v{margin-left:auto;font-size:14px;color:var(--muted);text-decoratio
 .tabla{width:100%;border-collapse:collapse;font-size:15px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .tabla td,.tabla th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .tabla th{background:var(--panel2);font-weight:700}.tabla tr:last-child td{border-bottom:0}
+.ruta{position:relative;margin:14px 0 6px;padding-left:4px}
+.ruta .e{display:grid;grid-template-columns:44px 1fr;gap:12px;position:relative;padding-bottom:16px}
+.ruta .e::before{content:"";position:absolute;left:21px;top:44px;bottom:0;width:2px;background:var(--line)}
+.ruta .e:last-child::before{display:none}
+.ruta .ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:var(--panel);border:2px solid var(--line);z-index:1}
+.ruta .e.yo .ic{border-color:var(--acc);background:rgba(255,138,76,.12)}
+.ruta .e.auto .ic{border-style:dashed}
+.ruta .e.club .ic{border-color:var(--ok)}
+.ruta .tx{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px}
+.ruta .tx>b{display:block;font-size:17px}
+.ruta .tx span.d{display:block;color:var(--muted);font-size:15px;margin-top:2px}
+.rol{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 10px;margin-bottom:4px}
+.rol.yo{background:var(--acc);color:var(--on-acc)}
+.rol.auto{background:var(--panel2);color:var(--muted);border:1px dashed var(--line)}
+.rol.club{background:rgba(55,201,120,.18);color:var(--ok);border:1px solid var(--ok)}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.tres div{background:var(--acc);color:var(--on-acc);border-radius:14px;padding:12px 8px;text-align:center;font-weight:700;font-size:15px;line-height:1.25}
+.tres div span{display:block;font-size:26px}
+.chk{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.chk li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px 10px 44px;position:relative;font-size:15.5px}
+.chk li::before{content:"✅";position:absolute;left:14px;top:9px}
+.ayuda2 th,.ayuda2 td{font-size:15px}
+.cuadro{background:linear-gradient(135deg,rgba(255,138,76,.14),rgba(255,138,76,.04));border:1px solid var(--acc);border-radius:18px;padding:18px 16px;margin:18px 0 6px}
+.cuadro h2{font:700 28px/1.1 var(--fd);margin:0 0 4px}
+.cuadro>p{margin:0;color:var(--muted)}
 .rutina{display:grid;gap:8px;margin:12px 0}
 .rutina div{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .rutina span{font-size:24px}
@@ -70,9 +95,47 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
   <div class="hero">
     <span class="t">Guía para la coordinación</span>
     <h1>Manejá la liga desde el celular</h1>
-    <p>Lo que hacés seguido, en pocos toques. Una cuenta de coordinación, compartida por quienes coordinan.</p>
-    <div class="indice"><a href="#p1">Entrar</a><a href="#p2">Aprobar clubes</a><a href="#p3">Jugadores</a><a href="#p4">Fixture</a><a href="#p5">Corregir</a><a href="#p6">Pagos</a><a href="#p7">Cuentas</a><a href="#p8">Drive</a></div>
+    <p>Una sola tarea de chequeo en la hoja de Drive; todo lo demás, en la plataforma.</p>
+    <div class="indice"><a href="#ruta">🧭 Recorrido completo</a><a href="#p1">Entrar</a><a href="#p2">Habilitar jugadores</a><a href="#p3">Equipos</a><a href="#p4">Escudos</a><a href="#p5">Clubes</a><a href="#p6">Fixture</a><a href="#p7">Corregir</a><a href="#p8">Cuentas</a><a href="#p9">Drive</a></div>
   </div>
+
+  <div class="cuadro" id="ruta">
+    <h2>🧭 Del formulario al equipo habilitado</h2>
+    <p>Es la tarea más importante de la liga. Está en 8 etapas y <b>vos hacés solo 3 toques</b>: el resto es automático.</p>
+  </div>
+
+  <div class="ruta">
+    <div class="e club"><div class="ic">🏟️</div><div class="tx"><span class="rol club">Club</span><b>1 · El club envía el formulario</b><span class="d">Carga sus jugadores (con DNI, nacimiento, <b>altura</b> y categorías), su escudo y sus dos colores. Ve “¡Recibido!”.</span></div></div>
+    <div class="e auto"><div class="ic">📋</div><div class="tx"><span class="rol auto">Automático · hasta 5 min</span><b>2 · Aparece en tu hoja de Drive</b><span class="d">Pestaña <b>Habilitación</b>, una fila por jugador, marcada <b>🆕 Formulario</b>. No hacés nada.</span></div></div>
+    <div class="e yo"><div class="ic">🔎</div><div class="tx"><span class="rol yo">Vos</span><b>3 · Verificás los datos del club</b><span class="d">Filtrás la columna <b>Club</b> (embudo). La columna <b>Documentación</b> te marca lo que falta: ❌ sin documento, ❌ sin altura…</span></div></div>
+    <div class="e yo"><div class="ic">💳</div><div class="tx"><span class="rol yo">Vos</span><b>4 · Marcás Pagó y Habilitado</b><span class="d">Por jugador: <b>Pagó</b> = Pagó, y <b>Habilitado</b> = Sí. Si los datos no sirven: <b>Rechazar</b>.</span></div></div>
+    <div class="e auto"><div class="ic">⚡</div><div class="tx"><span class="rol auto">Automático · segundos</span><b>5 · El jugador entra a la liga</b><span class="d">Al marcar, Drive avisa “✅ Enviado a la plataforma”. Recién ahí se crea el club (si era nuevo), su equipo en cada categoría y el jugador.</span></div></div>
+    <div class="e auto"><div class="ic">🛡️</div><div class="tx"><span class="rol auto">Automático · al instante</span><b>6 · El equipo se habilita</b><span class="d">Cuando un club tiene <b>7 jugadores en regla</b> (Pagó + Habilitado) en una categoría, esa categoría pasa a <b>✅ habilitada</b>. Lo ves en <b>Drive → Clubes</b> y en la plataforma.</span></div></div>
+    <div class="e yo"><div class="ic">🎨</div><div class="tx"><span class="rol yo">Vos · opcional</span><b>7 · Aplicás su escudo y colores</b><span class="d">En la plataforma: <b>Gestión → Formulario, escudos y colores → Aplicar al club</b>. Se puede cuando el club ya tiene jugadores habilitados.</span></div></div>
+    <div class="e auto"><div class="ic">🏀</div><div class="tx"><span class="rol auto">Listo</span><b>8 · Los jugadores están disponibles</b><span class="d">Aparecen en la <b>planilla del partido</b> y el equipo se puede poner en el <b>fixture</b>.</span></div></div>
+  </div>
+
+  <div class="tres"><div><span>🔎</span>1 · Filtrar<br>por club</div><div><span>💳</span>2 · Marcar<br>Pagó</div><div><span>✅</span>3 · Marcar<br>Habilitado</div></div>
+
+  <div class="tip">🧠 <b>Para recordar:</b> un jugador está <b>en regla</b> con <b>Pagó + Habilitado</b>. Un equipo está <b>habilitado</b> con <b>7 jugadores en regla</b>. Quien no paga o no se habilita <b>no entra</b>: así los clubes que presentan jugadores que después no pagan no ensucian la liga.</div>
+
+  <h3 style="font:700 22px var(--fd);margin:22px 0 6px">¿Cómo sé que el club quedó listo?</h3>
+  <ul class="chk">
+    <li>En <b>Drive → Clubes</b>, la categoría del club dice <b>✅</b> con su cantidad (por ejemplo “✅ 9”), no “⏳ 5/7”.</li>
+    <li>En la <b>plataforma → Gestión → Clubes y jugadores</b>, el equipo muestra <b>✅</b> y cada jugador dice <b>✅ En regla</b>.</li>
+    <li>Sus jugadores aparecen en la <b>planilla del partido</b>.</li>
+    <li>El club figura <b>“✅ Pagó”</b> en Clubes cuando todos sus jugadores pagaron.</li>
+  </ul>
+
+  <h3 style="font:700 22px var(--fd);margin:22px 0 6px">Si algo no aparece</h3>
+  <table class="tabla ayuda2">
+    <tr><th>Qué pasa</th><th>Qué hacer</th></tr>
+    <tr><td>No veo al club en Habilitación</td><td>Esperá hasta 5 minutos o corré el menú 🏀 <b>Actualizar desde TU LIGA ahora</b>. Confirmá que el club vio “¡Recibido!”.</td></tr>
+    <tr><td>Habilité a un jugador y no entra</td><td>Mirá <b>LEEME → Estado</b>: si hay un ⚠️, ahí dice el motivo. Revisá que esté activado el menú <b>Activar la actualización automática</b>.</td></tr>
+    <tr><td>El equipo sigue en ⏳</td><td>Faltan jugadores con <b>Pagó + Sí</b>. El “5/7” te dice cuántos lleva.</td></tr>
+    <tr><td>Un jugador dice “❌ Sin altura”</td><td>Escribí su altura en la columna <b>Altura</b> de Habilitación (solo se puede completar si falta).</td></tr>
+    <tr><td>El club no aparece en Clubes</td><td>Es normal: el club entra a la liga con su <b>primer jugador habilitado</b>.</td></tr>
+  </table>
 
   <div class="paso" id="p1">
     <div class="cab"><div class="n">1</div><h2>Entrar a la coordinación</h2></div>
@@ -86,62 +149,68 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
   </div>
 
   <div class="paso" id="p2">
-    <div class="cab"><div class="n">2</div><h2>Aprobar lo que mandan los clubes</h2></div>
-    <p>Cuando un club envía su plantel, queda <b>a la espera de tu confirmación</b>. Nada entra a la liga sin tu aprobación.</p>
-    <div class="tel"><div class="barra"></div>
-      <div class="m-card"><div class="r"><b>📥 Recibidos de los clubes<span class="m-badge">12</span></b><span>›</span></div><small>1 club · 12 jugadores esperando</small></div>
-      <div class="m-card"><div class="r"><b>KINDER BOLOGNA</b><span class="m-pill o">🆕 Club nuevo</span></div><small>Enviado el 17/11 · 12 jugadores</small>
-        <div class="m-card"><div class="r"><span><b>Gómez Leo</b><br><small>DNI 30111222 · 05/06/1992 · 182 cm</small></span><span class="m-pill p">Quitar</span></div><span class="m-chip on">Primera</span><span class="m-chip on">Maxi</span></div>
-        <div class="m-2"><div class="m-btn">✅ Aprobar club</div><div class="m-btn g">Rechazar</div></div>
-      </div>
-    </div>
-    <div class="tip">👀 <b>Revisá:</b> si un DNI ya está en la liga te lo avisa y <b>no se duplica</b>.<br>✅ <b>Aprobar club</b> crea el club, sus equipos en cada categoría y sus jugadores.<br>🗑️ <b>Quitar</b> saca a un jugador puntual. <b>Rechazar</b> descarta todo el envío.</div>
-    <div class="tip">🎨 Si el club mandó <b>escudo y colores</b>, los ves en una tarjeta <b>Identidad enviada</b>. Al aprobar se aplican a <b>todas las categorías</b> del club (y reemplazan los que tuviera).</div>
-    <div class="tip">📤 Para pedirle el plantel a los clubes, mandales el enlace del formulario. En esa misma pantalla hay un botón <b>📋 Copiar enlace</b>.</div>
+    <div class="cab"><div class="n">2</div><h2>Habilitar jugadores · tu única tarea de chequeo</h2></div>
+    <p>Se hace en la <b>hoja de Drive</b>, pestaña <b>Habilitación</b>. Una fila por jugador. Los que mandan los clubes por el formulario aparecen solos, marcados <b>🆕 Formulario</b>.</p>
+    <table class="tabla"><tr><th>Club</th><th>Jugador</th><th>Pagó</th><th>Habilitado</th></tr>
+      <tr><td>ALPHA</td><td>Gómez Leo</td><td><span class="m-pill o">Pagó</span></td><td><span class="m-pill o">Sí</span></td></tr>
+      <tr><td>ALPHA</td><td>Ruiz Tom</td><td><span class="m-pill o">Pagó</span></td><td><span class="m-pill p">No</span></td></tr>
+      <tr><td>MAIPU</td><td>Paz Ana 🆕</td><td><span class="m-pill p">Pendiente</span></td><td><span class="m-pill p">No</span></td></tr></table>
+    <div class="tip"><b>Cómo se hace, por club:</b><br>1️⃣ Tocá el embudo de la columna <b>Club</b> y elegí el club.<br>2️⃣ Revisá cada jugador: documento, fecha de nacimiento, altura y categorías. La columna <b>Documentación</b> te marca lo que falta.<br>3️⃣ Marcá <b>Pagó</b> (Pendiente / Pagó) y, si los datos están bien, <b>Habilitado = Sí</b>.<br>🚫 Si los datos no sirven, elegí <b>Rechazar</b>: el envío se descarta.</div>
+    <div class="tip">⚡ <b>Al marcar, se envía solo a la plataforma</b> (aparece un aviso “✅ Enviado”). Un jugador que mandó el formulario <b>entra a la liga recién cuando lo habilitás</b>. Quien nunca paga o no se habilita, no entra.<br>📝 Las excepciones o aclaraciones van en <b>Observaciones</b>: las reglas las decidís vos.<br>👥 Si un jugador juega en varias categorías, <b>paga una sola inscripción</b> y se marca una sola vez.</div>
   </div>
 
   <div class="paso" id="p3">
-    <div class="cab"><div class="n">3</div><h2>Clubes y jugadores</h2></div>
-    <p>En <b>Gestión → Clubes y jugadores</b> ves cada club con sus categorías. Cada jugador figura <b>una sola vez</b> y se marca en qué categorías juega.</p>
+    <div class="cab"><div class="n">3</div><h2>Cuándo queda habilitado un equipo</h2></div>
+    <p>Un jugador está <b>en regla</b> cuando figura <b>Pagó</b> y <b>Habilitado</b>. Un <b>equipo</b> (club + categoría) queda <b>habilitado con 7 jugadores en regla</b>.</p>
     <div class="tel"><div class="barra"></div>
-      <div class="m-in v"><span><span class="m-sw" style="background:#1565c0"></span>KINDER BOLOGNA</span><span>›</span></div>
-      <div class="m-card"><div class="r"><b>Gómez Leo</b><small>30111222</small></div><span class="m-chip on">Primera</span><span class="m-chip on">Maxi</span><span class="m-chip">Senior</span></div>
-      <div class="m-btn g">+ Jugador</div>
+      <div class="m-card"><div class="r"><b>ALPHA</b><small>Pago del club: 🟡 Parcial</small></div>
+        <span class="m-chip on">Maxi · ✅ 9</span><span class="m-chip">Primera · ⏳ 5/7</span></div>
     </div>
-    <div class="tip">👆 <b>Tocá una categoría</b> para habilitar o quitar al jugador en ella. Siempre tiene que quedar en al menos una.<br>🎨 En el club cargás el <b>logo y los colores</b>: se ven en todas sus categorías.<br>➕ <b>+ Jugador</b> abre su ficha: ahí marcás todas sus categorías, la camiseta, la altura y los datos privados.</div>
+    <div class="tip">👀 Lo ves en dos lugares y siempre coincide:<br>• En <b>Drive → pestaña Clubes</b>: una fila por club y una columna por categoría (✅ habilitado, ⏳ lleva N de 7). Es automática y cambia en el instante en que marcás.<br>• En la <b>plataforma → Gestión → Clubes y jugadores</b>: cada equipo con su insignia.<br>💳 El <b>club figura como “Pagó”</b> cuando todos sus jugadores pagaron.<br>🏀 En la planilla del partido aparecen <b>solo los jugadores en regla</b>, y al armar el fixture te avisa si un equipo está “⏳ sin habilitar”.</div>
   </div>
 
   <div class="paso" id="p4">
-    <div class="cab"><div class="n">4</div><h2>Fixture</h2></div>
-    <p>En <b>Gestión → Fixture</b> armás los partidos. Es el único fixture: la web pública y los planilleros lo siguen.</p>
+    <div class="cab"><div class="n">4</div><h2>Escudos y colores de los clubes</h2></div>
+    <p>Los clubes pueden mandar su <b>escudo</b> y sus <b>dos colores</b> en el formulario. Lo ves en <b>Gestión → Formulario, escudos y colores</b>.</p>
     <div class="tel"><div class="barra"></div>
-      <div class="m-2"><div class="m-btn">+ Nuevo partido</div><div class="m-btn g">⚡ Armar solo</div></div>
-      <div class="m-card"><div class="r"><b>Sáb 22/11 · 21:00</b><span class="m-pill a">Programado</span></div><small>Primera · Cancha 1</small><br>KINDER BOLOGNA vs ALPHA</div>
+      <div class="m-card"><div class="r"><b>KINDER BOLOGNA</b><span>🛡️</span></div><small>Colores enviados: ● ●</small>
+        <div class="m-2"><div class="m-btn">✅ Aplicar al club</div><div class="m-btn g">Descartar</div></div></div>
     </div>
-    <div class="tip">✏️ Tocá un partido programado para editarlo. Si un planillero lo está llevando, podés <b>🔓 Liberarlo</b>.<br>⚡ <b>Armar solo</b> propone los cruces automáticamente.</div>
+    <div class="tip">✅ <b>Aplicar al club</b> pinta todas sus categorías con esos colores y sube el escudo.<br>⏳ Solo se puede aplicar cuando el club ya está en la liga (tiene jugadores habilitados).<br>📤 En esa misma pantalla está el <b>enlace del formulario</b> para mandar a los clubes (📋 Copiar enlace).</div>
   </div>
 
   <div class="paso" id="p5">
-    <div class="cab"><div class="n">5</div><h2>Corregir un partido</h2></div>
+    <div class="cab"><div class="n">5</div><h2>Clubes y jugadores</h2></div>
+    <p>En <b>Gestión → Clubes y jugadores</b> ves cada club con sus equipos y el estado de cada jugador. Cada jugador figura <b>una sola vez</b>.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-in v"><span><span class="m-sw" style="background:#1565c0"></span>KINDER BOLOGNA</span><span>›</span></div>
+      <div class="m-card"><div class="r"><b>Gómez Leo</b><small>30111222</small></div><small>✅ En regla</small><br><span class="m-chip on">Primera</span><span class="m-chip on">Maxi</span><span class="m-chip">Senior</span></div>
+      <div class="m-btn g">+ Jugador</div>
+    </div>
+    <div class="tip">👆 Tocá una categoría para sumar o quitar al jugador en ella.<br>🎨 En el club cargás el <b>logo y los colores</b>.<br>🔒 En la ficha, la habilitación y el pago se <b>ven</b> pero se <b>marcan en Drive</b>: así hay un solo lugar de chequeo.<br>➕ Un jugador que cargues a mano con <b>+ Jugador</b> entra como no habilitado y aparece en la hoja de Drive para verificarlo.</div>
+  </div>
+
+  <div class="paso" id="p6">
+    <div class="cab"><div class="n">6</div><h2>Fixture</h2></div>
+    <p>En <b>Gestión → Fixture</b> armás los partidos. Es el único fixture: la web pública, los planilleros y Drive lo siguen.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-2"><div class="m-btn">+ Nuevo partido</div><div class="m-btn g">⚡ Armar solo</div></div>
+      <div class="m-card"><div class="r"><b>Sáb 22/11 · 21:00</b><span class="m-pill a">Programado</span></div><small>Primera · Cancha 1</small><br>ALPHA vs BETA ⏳ sin habilitar</div>
+    </div>
+    <div class="tip">✏️ Tocá un partido programado para editarlo. Si un planillero lo está llevando, podés <b>🔓 Liberarlo</b>.<br>⚠️ Al elegir un equipo, el que todavía no está habilitado aparece con <b>⏳ sin habilitar</b>. Es un aviso: no te bloquea.</div>
+  </div>
+
+  <div class="paso" id="p7">
+    <div class="cab"><div class="n">7</div><h2>Corregir un partido</h2></div>
     <p>¿Se cargó mal una jugada? En el Fixture, abrí el partido <b>cerrado</b> y tocá <b>✏️ Corregir</b>.</p>
     <div class="tel"><div class="barra"></div>
-      <div class="m-card"><div class="r"><b>KINDER BOLOGNA 71 – 68 ALPHA</b><span class="m-pill o">Final</span></div><div class="m-btn g">✏️ Corregir</div></div>
+      <div class="m-card"><div class="r"><b>ALPHA 71 – 68 BETA</b><span class="m-pill o">Final</span></div><div class="m-btn g">✏️ Corregir</div></div>
     </div>
     <div class="tip">Las correcciones quedan registradas y el marcador se <b>recalcula solo</b>.</div>
   </div>
 
-  <div class="paso" id="p6">
-    <div class="cab"><div class="n">6</div><h2>Control de pagos de inscripción</h2></div>
-    <p>Cada jugador paga <b>una sola inscripción</b>, aunque juegue en varias categorías. Se lleva en la <b>hoja de Drive</b>, pestaña <b>Pagos jugadores</b>: una fila por jugador, todos en <i>Pendiente</i> al empezar.</p>
-    <table class="tabla"><tr><th>Club</th><th>Jugador</th><th>Inscripción</th></tr>
-      <tr><td>ALPHA</td><td>Gómez Leo</td><td><span class="m-pill o">Pagó</span></td></tr>
-      <tr><td>ALPHA</td><td>Ruiz Tom</td><td><span class="m-pill p">Pendiente</span></td></tr>
-      <tr><td>MAIPU</td><td>Paz Ana</td><td><span class="m-pill p">Pendiente</span></td></tr></table>
-    <div class="tip">👆 <b>Para ver un club:</b> tocá el embudo de la columna <b>Club</b> y elegí el club. Ves quién pagó y quién falta. En <b>Inscripción</b> elegís <b>Pendiente</b> o <b>Pagó</b>, y podés anotar la fecha y observaciones (por ejemplo, una excepción).<br>📊 La pestaña <b>Pagos</b> te da el resumen por club, <b>solo</b> y al instante: cuántos jugadores tiene, cuántos pagaron, cuántos faltan y el estado (Pagó, Parcial o Pendiente).<br>🔒 Lo que escribís nunca se pisa. Los jugadores nuevos se suman solos como Pendiente.</div>
-  </div>
-
-  <div class="paso" id="p7">
-    <div class="cab"><div class="n">7</div><h2>Cuentas de la liga</h2></div>
+  <div class="paso" id="p8">
+    <div class="cab"><div class="n">8</div><h2>Cuentas de la liga</h2></div>
     <p>En <b>Gestión → 👥 Cuentas de la liga</b> están la cuenta de coordinación y las 5 de planilleros.</p>
     <div class="tel"><div class="barra"></div>
       <div class="m-card"><div class="r"><b>Planillero 1</b><small>🟢 libre</small></div><div class="m-2"><div class="m-btn g" style="height:38px">🔑 Cambiar clave</div><div class="m-btn g" style="height:38px">🔓 Liberar cuenta</div></div></div>
@@ -149,36 +218,32 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
     <div class="tip">🔑 <b>Cambiar clave</b> cuando se la pasás a otra persona.<br>🔓 <b>Liberar cuenta</b> si quedó una sesión abierta en un celular que ya no está.</div>
   </div>
 
-  <div class="paso" id="p8">
-    <div class="cab"><div class="n">8</div><h2>La hoja de Drive, pestaña por pestaña</h2></div>
-    <p>Es una copia ordenada de la liga para <b>consultar</b>. Se actualiza sola cada 5 minutos. Cada pestaña tiene filtros en el encabezado.</p>
+  <div class="paso" id="p9">
+    <div class="cab"><div class="n">9</div><h2>La hoja de Drive, pestaña por pestaña</h2></div>
+    <p>Es tu hoja de trabajo para <b>habilitar</b> y una copia ordenada de la liga para <b>consultar</b>. Cada pestaña tiene filtros en el encabezado.</p>
     <table class="tabla">
       <tr><th>Pestaña</th><th>Para qué</th></tr>
-      <tr><td>💳 Pagos jugadores</td><td><b>Tuya.</b> Marcás quién pagó, jugador por jugador.</td></tr>
-      <tr><td>💳 Pagos</td><td>Resumen por club, automático.</td></tr>
-      <tr><td>🛡️ Clubes</td><td>Un club por fila: categorías, jugadores y cuántos pagaron.</td></tr>
-      <tr><td>👤 Planteles</td><td>Un jugador por fila en cada equipo. Filtrás por <b>Club</b>, <b>Categoría</b> o <b>Equipo</b>. La columna <b>Control</b> te marca sola lo que falta.</td></tr>
-      <tr><td>📥 Recibidos</td><td>Lo que espera tu aprobación en la plataforma.</td></tr>
-      <tr><td>📅 Fixture · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga. El Fixture incluye resultado, ganador y árbitros. No se editan.</td></tr>
+      <tr><td>✅ Habilitación</td><td><b>Tu tarea.</b> Jugador por jugador: Pagó y Habilitado.</td></tr>
+      <tr><td>🛡️ Clubes</td><td>Automática: por club y categoría, ✅ habilitado o ⏳ cuántos lleva; y si el club pagó.</td></tr>
+      <tr><td>📅 Fixture · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga (se arma en la plataforma). El Fixture incluye resultado, ganador y árbitros.</td></tr>
       <tr><td>✏️ Cargar fixture / resultados</td><td>Opcional: cargas masivas, por ejemplo pegar un fixture entero desde Excel.</td></tr>
     </table>
-    <div class="tip">✅ <b>Revisar la reglamentación:</b> en <b>Planteles</b>, tocá el embudo de la columna <b>Control</b> y dejá solo lo que no dice <i>✅ OK</i>. Ahí aparecen los jugadores <b>sin documento</b>, <b>sin fecha de nacimiento</b>, <b>no habilitados</b> o con <b>documento repetido</b>. Después filtrá por club para pedirle al club lo que falte.</div>
-    <div class="tip">⚠️ Solo <b>Pagos jugadores</b> (y las observaciones de <b>Pagos</b>) se editan. Las demás se reescriben solas: lo que cambies ahí se pierde. Para cambiar datos de la liga, usá la plataforma.</div>
+    <div class="tip">⚠️ Solo editás las columnas <b>Pagó, Fecha de pago, Habilitado y Observaciones</b> de Habilitación. Todo lo demás se reescribe solo.<br>🔄 La hoja se actualiza sola cada 5 minutos; para verlo al instante: menú 🏀 TU LIGA → <b>Actualizar desde TU LIGA ahora</b>.</div>
   </div>
 
   <h2 class="s">Tu rutina</h2>
   <div class="rutina">
-    <div><span>📥</span><div><b>Cuando haya recibidos</b><br><span style="font-size:15px;color:var(--muted)">Revisás y aprobás los clubes. Un número rojo te avisa.</span></div></div>
-    <div><span>💳</span><div><b>Cuando un jugador paga</b><br><span style="font-size:15px;color:var(--muted)">Lo marcás en Pagos jugadores (filtrá por club).</span></div></div>
-    <div><span>📅</span><div><b>Antes de cada fecha</b><br><span style="font-size:15px;color:var(--muted)">Revisás el fixture y que los planilleros tengan partido.</span></div></div>
+    <div><span>✅</span><div><b>Cuando llegan jugadores o pagos</b><br><span style="font-size:15px;color:var(--muted)">En la hoja de Drive, pestaña Habilitación: filtrás por club y marcás Pagó y Habilitado.</span></div></div>
+    <div><span>🛡️</span><div><b>Para ver qué equipos ya juegan</b><br><span style="font-size:15px;color:var(--muted)">Pestaña Clubes: ✅ o ⏳ por categoría. Se arma sola.</span></div></div>
+    <div><span>📅</span><div><b>Antes de cada fecha</b><br><span style="font-size:15px;color:var(--muted)">En la plataforma: revisás el fixture y que los equipos estén habilitados.</span></div></div>
     <div><span>✏️</span><div><b>Después de cada partido</b><br><span style="font-size:15px;color:var(--muted)">Si hubo un error, lo corregís desde el Fixture.</span></div></div>
   </div>
 
   <h2 class="s">Preguntas rápidas</h2>
-  <details><summary>Un club mandó mal un dato</summary><p>Podés <b>Quitar</b> a ese jugador de lo recibido, o rechazar el envío para que el club lo cargue de nuevo. Si ya lo aprobaste, corregilo en la ficha del jugador.</p></details>
-  <details><summary>Un jugador juega en otro club</summary><p>Si el DNI ya está en la liga, el sistema te lo avisa al aprobar. Revisá antes de aprobar.</p></details>
-  <details><summary>Quiero agregar un jugador a mano</summary><p>Gestión → Clubes y jugadores → el club → <b>+ Jugador</b>. Marcá todas sus categorías.</p></details>
-  <details><summary>Cambié algo en la hoja de Drive y se borró</summary><p>Es normal: salvo Pagos, la hoja se reescribe sola desde la plataforma. Hacé los cambios en la plataforma.</p></details>
+  <details><summary>Un club mandó mal un dato</summary><p>En Habilitación elegí <b>Rechazar</b> para ese jugador (se descarta el envío) y pedile al club que lo vuelva a cargar. Si el jugador ya está en la liga, corregilo en su ficha de la plataforma.</p></details>
+  <details><summary>Un jugador pagó pero tiene un dato dudoso</summary><p>Marcá <b>Pagó</b> y dejá <b>Habilitado = No</b>. Anotá el motivo en Observaciones. Cuando se aclare, lo habilitás.</p></details>
+  <details><summary>Un jugador tiene una excepción de la organización</summary><p>Habilitalo y anotá la excepción en <b>Observaciones</b>. Las reglas las decidís vos: la hoja no controla la edad ni nada automático.</p></details>
+  <details><summary>Cambié el mínimo de 7 jugadores</summary><p>Se cambia una vez para toda la liga (se pide al responsable técnico). La hoja y la plataforma lo siguen solos.</p></details>
   <details><summary>Quiero ver los cambios ya en Drive</summary><p>En la hoja: menú 🏀 TU LIGA → <b>Actualizar desde TU LIGA ahora</b>.</p></details>
 
   <div class="cta"><a class="btn" href="index.html?liga=mar-y-sierra#/gestion">🛠️ Ir a Gestión</a></div>
