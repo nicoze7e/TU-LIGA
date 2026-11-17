@@ -623,6 +623,11 @@
     });
     return out.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
   }
+  function clubDe(eqId) { return clubes().filter(function (k) { return k.equipos.some(function (e) { return e.id === eqId; }); })[0]; }
+  function catsSel(eq) {                              // categorías marcadas en la ficha del jugador (si el club tiene una sola, es esa)
+    var box = document.getElementById('jCats'); if (!box) return [eq];
+    return Array.prototype.slice.call(box.querySelectorAll('.chip.on')).map(function (x) { return x.dataset.eq; });
+  }
   function club(key) { return clubes().filter(function (c) { return c.key === key; })[0]; }
   function jugadoresClub(c) {                        // cada persona una sola vez, con las categorías en las que está habilitada
     var ids = {}, m = {}, out = [];
@@ -722,12 +727,17 @@
   function vGJugador(id, q) {
     var nuevo = id === 'nuevo', j = nuevo ? { equipo_id: q.eq } : D.vista_jugadores.filter(function (x) { return x.id === id; })[0];
     if (!j) return '<p class="vacio">No encuentro ese jugador.</p>';
-    var e = equipo(j.equipo_id), pr = PRIV[j.id] || {};
+    var e = equipo(j.equipo_id), pr = PRIV[j.id] || {}, cl = clubDe(j.equipo_id), selc = '';
+    if (cl && cl.equipos.length > 1) {                // el jugador es del club: se marca en qué categorías juega (una o varias)
+      var enJ = {}; if (!nuevo) D.vista_jugadores.forEach(function (x) { if (x.id === j.id) enJ[x.equipo_id] = true; }); else enJ[j.equipo_id] = true;
+      selc = '<div id="jCats"><span class="muted sm">Categorías en las que juega (una o varias)</span><div class="chips" style="padding:6px 0 12px;margin:0">' +
+        cl.equipos.map(function (q) { return '<button type="button" class="chip' + (enJ[q.id] ? ' on' : '') + '" data-a="jcat" data-eq="' + q.id + '" style="height:38px">' + esc(nomCat(q.categoria_id)) + '</button>'; }).join('') + '</div></div>';
+    }
     return '<h1>' + (nuevo ? 'Nuevo jugador' : esc(nombreDe(j))) + '</h1><p class="muted sm" style="margin-top:-6px">' + (e ? dot(e.color_principal) + esc(e.nombre) : '') + '</p>' +
       '<div class="grid2"><label class="campo"><span>Nombre</span><input id="jNom" value="' + esc(j.nombre || '') + '"></label><label class="campo"><span>Apellido</span><input id="jApe" value="' + esc(j.apellido || '') + '"></label></div>' +
       '<div class="grid2"><label class="campo"><span>Camiseta habitual</span><input id="jCam" type="number" min="0" max="99" value="' + (j.camiseta_habitual == null ? '' : j.camiseta_habitual) + '"></label><label class="campo"><span>Altura (cm)</span><input id="jAlt" type="number" min="120" max="250" value="' + (j.altura_cm || '') + '"></label></div>' +
       '<label class="campo"><span>Posición</span>' + sel('jPos', Object.keys(POS).map(function (k) { return [k, POS[k]]; }), posDe(j)) + '</label>' +
-      '<div class="privado"><b>🔒 Solo coordinadores</b><label class="campo" style="margin-top:8px"><span>Documento</span><input id="jDoc" value="' + esc(pr.doc || '') + '" autocomplete="off"></label><label class="campo"><span>Fecha de nacimiento</span><input id="jNac" type="date" value="' + esc(pr.nac || '') + '"></label><label class="campo" style="margin:0"><span>Habilitado para jugar</span>' + sel('jHab', [['si', 'Sí'], ['no', 'No']], pr.hab || 'si') + '</label></div>' +
+      selc + '<div class="privado"><b>🔒 Solo coordinadores</b><label class="campo" style="margin-top:8px"><span>Documento</span><input id="jDoc" value="' + esc(pr.doc || '') + '" autocomplete="off"></label><label class="campo"><span>Fecha de nacimiento</span><input id="jNac" type="date" value="' + esc(pr.nac || '') + '"></label><label class="campo" style="margin:0"><span>Habilitado para jugar</span>' + sel('jHab', [['si', 'Sí'], ['no', 'No']], pr.hab || 'si') + '</label></div>' +
       '<div class="ayuda">Lo público es solo nombre, camiseta del partido, altura y estadísticas. Documento y fecha de nacimiento nunca salen de esta pantalla.</div><div class="err" id="jErr"></div>' +
       '<button class="btn p full" data-a="gjug" data-id="' + (nuevo ? 'nuevo' : j.id) + '" data-eq="' + (j.equipo_id || '') + '" type="button">Guardar</button>' +
       (nuevo ? '' : '<div style="height:10px"></div><button class="btn mal full" data-a="bjug" data-id="' + j.id + '" type="button">Quitar del equipo</button>');
@@ -843,17 +853,24 @@
       var nom = document.getElementById('jNom').value.trim(), ape = document.getElementById('jApe').value.trim(), er = document.getElementById('jErr'), eq = b.dataset.eq, id = b.dataset.id;
       var cam = document.getElementById('jCam').value, alt = document.getElementById('jAlt').value;
       if (!nom) { er.textContent = 'Poné el nombre.'; return; }
-      if (cam !== '' && jugadores(eq).some(function (j) { return j.id !== id && String(j.camiseta_habitual) === String(cam); })) { er.textContent = 'Esa camiseta ya la tiene otro jugador del equipo.'; return; }
-      var datos = { nombre: nom, apellido: ape || '-', altura_cm: alt === '' ? null : +alt }, jid = id;
-      if (id === 'nuevo') {
-        jid = okr(await SB().from('jugadores').insert(Object.assign({ liga_id: ligaId() }, datos)).select('id').single()).id;
-        okr(await SB().from('inscripciones').insert({ jugador_id: jid, equipo_id: eq, camiseta_habitual: cam === '' ? null : +cam }));
-      } else {
-        okr(await SB().from('jugadores').update(datos).eq('id', id));
-        okr(await SB().from('inscripciones').update({ camiseta_habitual: cam === '' ? null : +cam }).eq('jugador_id', id).eq('equipo_id', eq));
+      var sel = catsSel(eq); if (!sel.length) { er.textContent = 'Elegí al menos una categoría.'; return; }
+      var cl = clubDe(eq), idsC = cl ? cl.equipos.map(function (x) { return x.id; }) : [eq];
+      var ya = id === 'nuevo' ? [] : D.vista_jugadores.filter(function (x) { return x.id === id && idsC.indexOf(x.equipo_id) >= 0; }).map(function (x) { return x.equipo_id; });
+      if (cam !== '' && sel.some(function (t) { return (ya.indexOf(t) < 0 || t === eq) && jugadores(t).some(function (j) { return j.id !== id && String(j.camiseta_habitual) === String(cam); }); })) { er.textContent = 'Esa camiseta ya la tiene otro jugador en una de las categorías elegidas.'; return; }
+      var datos = { nombre: nom, apellido: ape || '-', altura_cm: alt === '' ? null : +alt }, jid = id, camv = cam === '' ? null : +cam;
+      if (id === 'nuevo') jid = okr(await SB().from('jugadores').insert(Object.assign({ liga_id: ligaId() }, datos)).select('id').single()).id;
+      else okr(await SB().from('jugadores').update(datos).eq('id', id));
+      for (var i = 0; i < sel.length; i++) {          // alta en cada categoría marcada (la camiseta solo se cambia en la categoría que estás editando)
+        if (ya.indexOf(sel[i]) < 0) okr(await SB().from('inscripciones').upsert({ jugador_id: jid, equipo_id: sel[i], camiseta_habitual: camv, activa: true }, { onConflict: 'jugador_id,equipo_id' }));
+        else if (sel[i] === eq) okr(await SB().from('inscripciones').update({ camiseta_habitual: camv }).eq('jugador_id', jid).eq('equipo_id', sel[i]));
+      }
+      for (var k = 0; k < ya.length; k++) {           // baja en las categorías desmarcadas
+        if (sel.indexOf(ya[k]) >= 0) continue;
+        var d = await SB().from('inscripciones').delete().eq('jugador_id', jid).eq('equipo_id', ya[k]);
+        if (d.error && d.error.code === '23503') okr(await SB().from('inscripciones').update({ activa: false }).eq('jugador_id', jid).eq('equipo_id', ya[k])); else okr(d);
       }
       okr(await SB().from('jugadores_privado').upsert({ jugador_id: jid, documento: document.getElementById('jDoc').value || null, fecha_nacimiento: document.getElementById('jNac').value || null, posicion: document.getElementById('jPos').value, habilitado: document.getElementById('jHab').value === 'si' }, { onConflict: 'jugador_id' }));
-      TL().toast('Jugador guardado.'); location.hash = '#/g-equipo/' + eq; await refrescarReal();
+      TL().toast('Jugador guardado.'); location.hash = '#/g-equipo/' + (sel.indexOf(eq) >= 0 ? eq : sel[0]); await refrescarReal();
     },
     bjug: async function (b) {
       var j = D.vista_jugadores.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!j) return;
@@ -1158,17 +1175,23 @@
       if (n) { drive('BASE › Jugadores', n + ' filas agregadas (lista pegada)'); TL().toast(n + ' jugadores agregados. Completá camiseta y altura donde falte.'); } else TL().toast('No encontré jugadores en el texto.');
       TL().recargar();
     },
+    jcat: function (b) { b.classList.toggle('on'); },
     gjug: function (b) {
       var nom = document.getElementById('jNom').value.trim(), ape = document.getElementById('jApe').value.trim(), er = document.getElementById('jErr'), eq = b.dataset.eq, id = b.dataset.id;
       var cam = document.getElementById('jCam').value, alt = document.getElementById('jAlt').value;
       if (!nom) { er.textContent = 'Poné el nombre.'; return; }
-      if (cam !== '' && jugadores(eq).some(function (j) { return j.id !== id && String(j.camiseta_habitual) === String(cam); })) { er.textContent = 'Esa camiseta ya la tiene otro jugador del equipo.'; return; }
-      var j = id === 'nuevo' ? null : D.vista_jugadores.filter(function (x) { return x.id === id; })[0], e = equipo(eq);
-      var datos = { nombre: nom, apellido: ape, nombre_completo: (nom + ' ' + ape).trim(), altura_cm: alt === '' ? null : +alt, camiseta_habitual: cam === '' ? null : +cam, posicion: document.getElementById('jPos').value };
-      if (j) Object.assign(j, datos); else { j = Object.assign({ id: uid(), liga_id: ligaId(), equipo_id: eq, equipo_nombre: e.nombre, categoria_id: e.categoria_id }, datos); D.vista_jugadores.push(j); }
-      PRIV[j.id] = { doc: document.getElementById('jDoc').value, nac: document.getElementById('jNac').value, hab: document.getElementById('jHab').value };
-      drive('BASE › Jugadores', (id === 'nuevo' ? 'fila agregada: ' : 'fila actualizada: ') + datos.nombre_completo);
-      TL().toast('Jugador guardado.'); location.hash = '#/g-equipo/' + eq; TL().recargar();
+      var sel = catsSel(eq); if (!sel.length) { er.textContent = 'Elegí al menos una categoría.'; return; }
+      var cl = clubDe(eq), idsC = cl ? cl.equipos.map(function (x) { return x.id; }) : [eq];
+      var filas = id === 'nuevo' ? [] : D.vista_jugadores.filter(function (x) { return x.id === id && idsC.indexOf(x.equipo_id) >= 0; });
+      var ya = filas.map(function (x) { return x.equipo_id; });
+      if (cam !== '' && sel.some(function (t) { return (ya.indexOf(t) < 0 || t === eq) && jugadores(t).some(function (j) { return j.id !== id && String(j.camiseta_habitual) === String(cam); }); })) { er.textContent = 'Esa camiseta ya la tiene otro jugador en una de las categorías elegidas.'; return; }
+      var datos = { nombre: nom, apellido: ape, nombre_completo: (nom + ' ' + ape).trim(), altura_cm: alt === '' ? null : +alt, posicion: document.getElementById('jPos').value }, camv = cam === '' ? null : +cam, jid = id === 'nuevo' ? uid() : id;
+      filas.forEach(function (r) { Object.assign(r, datos); if (r.equipo_id === eq) r.camiseta_habitual = camv; });
+      filas.filter(function (r) { return sel.indexOf(r.equipo_id) < 0; }).forEach(function (r) { D.vista_jugadores.splice(D.vista_jugadores.indexOf(r), 1); });
+      sel.forEach(function (t) { if (ya.indexOf(t) < 0) { var e2 = equipo(t); D.vista_jugadores.push(Object.assign({ id: jid, liga_id: ligaId(), equipo_id: t, equipo_nombre: e2.nombre, categoria_id: e2.categoria_id }, datos, { camiseta_habitual: camv })); } });
+      PRIV[jid] = { doc: document.getElementById('jDoc').value, nac: document.getElementById('jNac').value, hab: document.getElementById('jHab').value };
+      drive('BASE › Jugadores', (id === 'nuevo' ? 'fila agregada: ' : 'fila actualizada: ') + datos.nombre_completo + (sel.length > 1 ? ' (' + sel.length + ' categorías)' : ''));
+      TL().toast('Jugador guardado.'); location.hash = '#/g-equipo/' + (sel.indexOf(eq) >= 0 ? eq : sel[0]); TL().recargar();
     },
     bjug: function (b) {
       var j = D.vista_jugadores.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!j) return;
