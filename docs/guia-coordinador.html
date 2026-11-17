@@ -132,12 +132,12 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
 
   <div class="paso" id="p6">
     <div class="cab"><div class="n">6</div><h2>Control de pagos de inscripción</h2></div>
-    <p>Se lleva en la <b>hoja de Drive</b>, pestaña <b>Pagos</b>. Cada club aparece solo, en estado <i>Pendiente</i>.</p>
-    <table class="tabla"><tr><th>Club</th><th>Inscripción</th></tr>
-      <tr><td>ALPHA</td><td><span class="m-pill o">Pagó</span></td></tr>
-      <tr><td>KINDER BOLOGNA</td><td><span class="m-pill a">Parcial</span></td></tr>
-      <tr><td>MAIPU</td><td><span class="m-pill p">Pendiente</span></td></tr></table>
-    <div class="tip">En <b>Inscripción pagada</b> elegís <b>Pendiente</b>, <b>Pagó</b> o <b>Parcial</b> con el desplegable. También podés anotar la fecha y observaciones.<br>🔒 Lo que escribís en <b>Pagos</b> nunca se pisa. El estado se ve también en las pestañas <b>Clubes</b> y <b>Jugadores</b>.</div>
+    <p>Cada jugador paga <b>una sola inscripción</b>, aunque juegue en varias categorías. Se lleva en la <b>hoja de Drive</b>, pestaña <b>Pagos jugadores</b>: una fila por jugador, todos en <i>Pendiente</i> al empezar.</p>
+    <table class="tabla"><tr><th>Club</th><th>Jugador</th><th>Inscripción</th></tr>
+      <tr><td>ALPHA</td><td>Gómez Leo</td><td><span class="m-pill o">Pagó</span></td></tr>
+      <tr><td>ALPHA</td><td>Ruiz Tom</td><td><span class="m-pill p">Pendiente</span></td></tr>
+      <tr><td>MAIPU</td><td>Paz Ana</td><td><span class="m-pill p">Pendiente</span></td></tr></table>
+    <div class="tip">👆 <b>Para ver un club:</b> tocá el embudo de la columna <b>Club</b> y elegí el club. Ves quién pagó y quién falta. En <b>Inscripción</b> elegís <b>Pendiente</b> o <b>Pagó</b>, y podés anotar la fecha y observaciones (por ejemplo, una excepción).<br>📊 La pestaña <b>Pagos</b> te da el resumen por club, <b>solo</b> y al instante: cuántos jugadores tiene, cuántos pagaron, cuántos faltan y el estado (Pagó, Parcial o Pendiente).<br>🔒 Lo que escribís nunca se pisa. Los jugadores nuevos se suman solos como Pendiente.</div>
   </div>
 
   <div class="paso" id="p7">
@@ -154,21 +154,22 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
     <p>Es una copia ordenada de la liga para <b>consultar</b>. Se actualiza sola cada 5 minutos. Cada pestaña tiene filtros en el encabezado.</p>
     <table class="tabla">
       <tr><th>Pestaña</th><th>Para qué</th></tr>
-      <tr><td>💳 Pagos</td><td><b>Tuya.</b> Marcás quién pagó.</td></tr>
-      <tr><td>🛡️ Clubes</td><td>Un club por fila: categorías, jugadores, inscripción.</td></tr>
+      <tr><td>💳 Pagos jugadores</td><td><b>Tuya.</b> Marcás quién pagó, jugador por jugador.</td></tr>
+      <tr><td>💳 Pagos</td><td>Resumen por club, automático.</td></tr>
+      <tr><td>🛡️ Clubes</td><td>Un club por fila: categorías, jugadores y cuántos pagaron.</td></tr>
       <tr><td>👤 Planteles</td><td>Un jugador por fila en cada equipo. Filtrás por <b>Club</b>, <b>Categoría</b> o <b>Equipo</b>. La columna <b>Control</b> te marca sola lo que falta.</td></tr>
       <tr><td>📥 Recibidos</td><td>Lo que espera tu aprobación en la plataforma.</td></tr>
       <tr><td>📅 Fixture · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga. El Fixture incluye resultado, ganador y árbitros. No se editan.</td></tr>
       <tr><td>✏️ Cargar fixture / resultados</td><td>Opcional: cargas masivas, por ejemplo pegar un fixture entero desde Excel.</td></tr>
     </table>
     <div class="tip">✅ <b>Revisar la reglamentación:</b> en <b>Planteles</b>, tocá el embudo de la columna <b>Control</b> y dejá solo lo que no dice <i>✅ OK</i>. Ahí aparecen los jugadores <b>sin documento</b>, <b>sin fecha de nacimiento</b>, <b>no habilitados</b> o con <b>documento repetido</b>. Después filtrá por club para pedirle al club lo que falte.</div>
-    <div class="tip">⚠️ Solo <b>Pagos</b> se edita. Las demás se reescriben solas: lo que cambies ahí se pierde. Para cambiar datos de la liga, usá la plataforma.</div>
+    <div class="tip">⚠️ Solo <b>Pagos jugadores</b> (y las observaciones de <b>Pagos</b>) se editan. Las demás se reescriben solas: lo que cambies ahí se pierde. Para cambiar datos de la liga, usá la plataforma.</div>
   </div>
 
   <h2 class="s">Tu rutina</h2>
   <div class="rutina">
     <div><span>📥</span><div><b>Cuando haya recibidos</b><br><span style="font-size:15px;color:var(--muted)">Revisás y aprobás los clubes. Un número rojo te avisa.</span></div></div>
-    <div><span>💳</span><div><b>Cuando un club paga</b><br><span style="font-size:15px;color:var(--muted)">Lo marcás en la pestaña Pagos de Drive.</span></div></div>
+    <div><span>💳</span><div><b>Cuando un jugador paga</b><br><span style="font-size:15px;color:var(--muted)">Lo marcás en Pagos jugadores (filtrá por club).</span></div></div>
     <div><span>📅</span><div><b>Antes de cada fecha</b><br><span style="font-size:15px;color:var(--muted)">Revisás el fixture y que los planilleros tengan partido.</span></div></div>
     <div><span>✏️</span><div><b>Después de cada partido</b><br><span style="font-size:15px;color:var(--muted)">Si hubo un error, lo corregís desde el Fixture.</span></div></div>
   </div>
