@@ -54,7 +54,7 @@
     DRIVE.unshift({ t: new Date(), hoja: hoja, accion: accion, ruta: 'SUPER OFICIAL / ' + s + ' / ' + catNombre(gcat()) });
   }
   function nube() {
-    if (REAL) return '<div class="nube">☁️ <span>' + (CFGR.driveSyncUrl ? '<b>Copia en Drive</b> · se actualiza sola cada pocos minutos' : 'Copia en Drive: pendiente de conectar') + '</span>' + (CFGR.driveHojaUrl ? '<a href="' + esc(CFGR.driveHojaUrl) + '" target="_blank" rel="noopener">Abrir</a>' : '') + '</div>';
+    if (REAL) return '<div class="nube">☁️ <span>' + '<b>Copia en Drive</b> · se actualiza sola cada pocos minutos' + '</span>' + (CFGR.driveHojaUrl ? '<a href="' + esc(CFGR.driveHojaUrl) + '" target="_blank" rel="noopener">Abrir</a>' : '') + '</div>';
     var u = DRIVE[0];
     return '<div class="nube">☁️ <span>' + (u ? '<b>Guardado en Drive</b> · ' + esc(u.hoja) + ' · hace instantes' : 'Drive al día · sin cambios en esta sesión') + '</span><a href="#/g-drive">Ver</a></div>';
   }

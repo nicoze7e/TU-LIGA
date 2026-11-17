@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TU LIGA · Guía para la coordinación</title>
+<meta name="description" content="Cómo usar TU LIGA como coordinador: aprobar clubes, gestionar jugadores, fixture, pagos y la hoja de Drive.">
+<meta name="theme-color" content="#0f141a">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#0f141a;--panel:#19212a;--panel2:#232c36;--ink:#e9edf1;--muted:#98a5b2;--line:#2c3743;--acc:#ff8a4c;--ok:#37c978;--warn:#f5b800;--on-acc:#1c0f07;--f:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fd:"Barlow Condensed","Arial Narrow",sans-serif}
+@media (prefers-color-scheme:light){:root{--bg:#eceff3;--panel:#fff;--panel2:#f4f6f9;--ink:#141b24;--muted:#586471;--line:#d2d8df;--acc:#c2410c;--on-acc:#fff;--warn:#b45309}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 var(--f);overflow-x:hidden}
+a{color:inherit}
+.w{max-width:640px;margin:0 auto;padding:0 18px}
+header.top{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;background:var(--bg)}
+header.top .w{display:flex;align-items:center;gap:10px;height:56px}
+header.top img{width:28px;height:28px}header.top b{font:700 20px var(--fd);letter-spacing:.03em}
+header.top a.v{margin-left:auto;font-size:14px;color:var(--muted);text-decoration:none}
+.hero{padding:32px 0 14px;text-align:center}
+.hero .t{font:600 13px var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.hero h1{font:700 clamp(36px,9vw,52px)/1.05 var(--fd);margin:10px 0 10px}
+.hero p{color:var(--muted);margin:0 auto;max-width:480px}
+.indice{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 6px}
+.indice a{text-decoration:none;font-size:14.5px;font-weight:600;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px}
+.paso{margin:34px 0;scroll-margin-top:70px}
+.cab{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.n{flex:none;width:42px;height:42px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font:700 22px var(--fd)}
+.cab h2{font:700 27px/1.1 var(--fd);margin:0}
+.paso>p{margin:0 0 12px;color:var(--muted)}
+.tel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;max-width:360px;margin:0 auto}
+.tel .barra{height:5px;width:60px;background:var(--line);border-radius:3px;margin:0 auto 12px}
+.m-in{min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:15px;margin:6px 0}
+.m-in.v{color:var(--ink)}
+.m-lbl{font-size:12px;color:var(--muted);margin-top:8px}
+.m-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;margin:8px 0}
+.m-card .r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.m-card small{color:var(--muted)}
+.m-chip{display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-weight:600;font-size:14px;margin:6px 6px 0 0}
+.m-chip.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.m-btn{height:44px;border-radius:12px;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-weight:700;margin-top:8px}
+.m-btn.g{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.m-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.m-badge{display:inline-block;background:#ff3b4e;color:#fff;border-radius:999px;padding:1px 9px;font-weight:700;font-size:13px;margin-left:6px}
+.m-pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+.m-pill.p{background:#ffd0d0;color:#8a1c1c}.m-pill.o{background:#c6efce;color:#0b5b2a}.m-pill.a{background:#ffe8b3;color:#7a4b00}
+.m-sw{display:inline-block;width:18px;height:18px;border-radius:50%;vertical-align:middle;margin-right:8px}
+.tip{background:var(--panel2);border-left:4px solid var(--acc);border-radius:10px;padding:12px 14px;margin:12px 0 0;font-size:15.5px}
+.tabla{width:100%;border-collapse:collapse;font-size:15px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tabla td,.tabla th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.tabla th{background:var(--panel2);font-weight:700}.tabla tr:last-child td{border-bottom:0}
+.rutina{display:grid;gap:8px;margin:12px 0}
+.rutina div{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.rutina span{font-size:24px}
+h2.s{font:700 28px var(--fd);margin:40px 0 10px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 16px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:700;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::after{content:"＋";color:var(--acc)}details[open] summary::after{content:"－"}
+details p{margin:0 0 14px;color:var(--muted)}
+.cta{text-align:center;padding:26px 0 8px}
+.btn{display:inline-flex;align-items:center;min-height:54px;padding:0 28px;border-radius:14px;background:var(--acc);color:var(--on-acc);font:700 18px var(--f);text-decoration:none}
+footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
+</style>
+</head>
+<body>
+<header class="top"><div class="w"><img src="logo.svg" alt=""><b>TU LIGA</b><a class="v" href="presentacion.html">Inicio</a></div></header>
+<main class="w">
+  <div class="hero">
+    <span class="t">Guía para la coordinación</span>
+    <h1>Manejá la liga desde el celular</h1>
+    <p>Lo que hacés seguido, en pocos toques. Una cuenta de coordinación, compartida por quienes coordinan.</p>
+    <div class="indice"><a href="#p1">Entrar</a><a href="#p2">Aprobar clubes</a><a href="#p3">Jugadores</a><a href="#p4">Fixture</a><a href="#p5">Corregir</a><a href="#p6">Pagos</a><a href="#p7">Cuentas</a><a href="#p8">Drive</a></div>
+  </div>
+
+  <div class="paso" id="p1">
+    <div class="cab"><div class="n">1</div><h2>Entrar a la coordinación</h2></div>
+    <p>Tocá el botón <b>🔑</b> de arriba a la derecha de la web, elegí la cuenta <b>Coordinador</b> y poné la contraseña que te dieron.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-lbl">Cuenta</div><div class="m-in v">Coordinador ▾</div>
+      <div class="m-lbl">Contraseña</div><div class="m-in">••••••••</div>
+      <div class="m-btn">Entrar</div>
+    </div>
+    <div class="tip">🔐 Cada cuenta admite <b>una sola sesión</b> a la vez. Si alguien más quedó conectado, la plataforma te avisa y podés tomar la sesión.</div>
+  </div>
+
+  <div class="paso" id="p2">
+    <div class="cab"><div class="n">2</div><h2>Aprobar lo que mandan los clubes</h2></div>
+    <p>Cuando un club envía su plantel, queda <b>a la espera de tu confirmación</b>. Nada entra a la liga sin tu aprobación.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-card"><div class="r"><b>📥 Recibidos de los clubes<span class="m-badge">12</span></b><span>›</span></div><small>1 club · 12 jugadores esperando</small></div>
+      <div class="m-card"><div class="r"><b>KINDER BOLOGNA</b><span class="m-pill o">🆕 Club nuevo</span></div><small>Enviado el 17/11 · 12 jugadores</small>
+        <div class="m-card"><div class="r"><span><b>Gómez Leo</b><br><small>DNI 30111222 · 05/06/1992 · 182 cm</small></span><span class="m-pill p">Quitar</span></div><span class="m-chip on">Primera</span><span class="m-chip on">Maxi</span></div>
+        <div class="m-2"><div class="m-btn">✅ Aprobar club</div><div class="m-btn g">Rechazar</div></div>
+      </div>
+    </div>
+    <div class="tip">👀 <b>Revisá:</b> si un DNI ya está en la liga te lo avisa y <b>no se duplica</b>.<br>✅ <b>Aprobar club</b> crea el club, sus equipos en cada categoría y sus jugadores.<br>🗑️ <b>Quitar</b> saca a un jugador puntual. <b>Rechazar</b> descarta todo el envío.</div>
+    <div class="tip">📤 Para pedirle el plantel a los clubes, mandales el enlace del formulario. En esa misma pantalla hay un botón <b>📋 Copiar enlace</b>.</div>
+  </div>
+
+  <div class="paso" id="p3">
+    <div class="cab"><div class="n">3</div><h2>Clubes y jugadores</h2></div>
+    <p>En <b>Gestión → Clubes y jugadores</b> ves cada club con sus categorías. Cada jugador figura <b>una sola vez</b> y se marca en qué categorías juega.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-in v"><span><span class="m-sw" style="background:#1565c0"></span>KINDER BOLOGNA</span><span>›</span></div>
+      <div class="m-card"><div class="r"><b>Gómez Leo</b><small>30111222</small></div><span class="m-chip on">Primera</span><span class="m-chip on">Maxi</span><span class="m-chip">Senior</span></div>
+      <div class="m-btn g">+ Jugador</div>
+    </div>
+    <div class="tip">👆 <b>Tocá una categoría</b> para habilitar o quitar al jugador en ella. Siempre tiene que quedar en al menos una.<br>🎨 En el club cargás el <b>logo y los colores</b>: se ven en todas sus categorías.<br>➕ <b>+ Jugador</b> abre su ficha: ahí marcás todas sus categorías, la camiseta, la altura y los datos privados.</div>
+  </div>
+
+  <div class="paso" id="p4">
+    <div class="cab"><div class="n">4</div><h2>Fixture</h2></div>
+    <p>En <b>Gestión → Fixture</b> armás los partidos. Es el único fixture: la web pública y los planilleros lo siguen.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-2"><div class="m-btn">+ Nuevo partido</div><div class="m-btn g">⚡ Armar solo</div></div>
+      <div class="m-card"><div class="r"><b>Sáb 22/11 · 21:00</b><span class="m-pill a">Programado</span></div><small>Primera · Cancha 1</small><br>KINDER BOLOGNA vs ALPHA</div>
+    </div>
+    <div class="tip">✏️ Tocá un partido programado para editarlo. Si un planillero lo está llevando, podés <b>🔓 Liberarlo</b>.<br>⚡ <b>Armar solo</b> propone los cruces automáticamente.</div>
+  </div>
+
+  <div class="paso" id="p5">
+    <div class="cab"><div class="n">5</div><h2>Corregir un partido</h2></div>
+    <p>¿Se cargó mal una jugada? En el Fixture, abrí el partido <b>cerrado</b> y tocá <b>✏️ Corregir</b>.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-card"><div class="r"><b>KINDER BOLOGNA 71 – 68 ALPHA</b><span class="m-pill o">Final</span></div><div class="m-btn g">✏️ Corregir</div></div>
+    </div>
+    <div class="tip">Las correcciones quedan registradas y el marcador se <b>recalcula solo</b>.</div>
+  </div>
+
+  <div class="paso" id="p6">
+    <div class="cab"><div class="n">6</div><h2>Control de pagos de inscripción</h2></div>
+    <p>Se lleva en la <b>hoja de Drive</b>, pestaña <b>Pagos</b>. Cada club aparece solo, en estado <i>Pendiente</i>.</p>
+    <table class="tabla"><tr><th>Club</th><th>Inscripción</th></tr>
+      <tr><td>ALPHA</td><td><span class="m-pill o">Pagó</span></td></tr>
+      <tr><td>KINDER BOLOGNA</td><td><span class="m-pill a">Parcial</span></td></tr>
+      <tr><td>MAIPU</td><td><span class="m-pill p">Pendiente</span></td></tr></table>
+    <div class="tip">En <b>Inscripción pagada</b> elegís <b>Pendiente</b>, <b>Pagó</b> o <b>Parcial</b> con el desplegable. También podés anotar la fecha y observaciones.<br>🔒 Lo que escribís en <b>Pagos</b> nunca se pisa. El estado se ve también en las pestañas <b>Clubes</b> y <b>Jugadores</b>.</div>
+  </div>
+
+  <div class="paso" id="p7">
+    <div class="cab"><div class="n">7</div><h2>Cuentas de la liga</h2></div>
+    <p>En <b>Gestión → 👥 Cuentas de la liga</b> están la cuenta de coordinación y las 5 de planilleros.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-card"><div class="r"><b>Planillero 1</b><small>🟢 libre</small></div><div class="m-2"><div class="m-btn g" style="height:38px">🔑 Cambiar clave</div><div class="m-btn g" style="height:38px">🔓 Liberar cuenta</div></div></div>
+    </div>
+    <div class="tip">🔑 <b>Cambiar clave</b> cuando se la pasás a otra persona.<br>🔓 <b>Liberar cuenta</b> si quedó una sesión abierta en un celular que ya no está.</div>
+  </div>
+
+  <div class="paso" id="p8">
+    <div class="cab"><div class="n">8</div><h2>La hoja de Drive, pestaña por pestaña</h2></div>
+    <p>Es una copia ordenada de la liga para <b>consultar</b>. Se actualiza sola cada 5 minutos. Cada pestaña tiene filtros en el encabezado.</p>
+    <table class="tabla">
+      <tr><th>Pestaña</th><th>Para qué</th></tr>
+      <tr><td>💳 Pagos</td><td><b>Tuya.</b> Marcás quién pagó.</td></tr>
+      <tr><td>🛡️ Clubes</td><td>Un club por fila: categorías, jugadores, inscripción.</td></tr>
+      <tr><td>👤 Jugadores</td><td>Un jugador por fila, con todas sus categorías.</td></tr>
+      <tr><td>📥 Recibidos</td><td>Lo que espera tu aprobación en la plataforma.</td></tr>
+      <tr><td>📅 Fixture · Resultados · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga. No se editan.</td></tr>
+      <tr><td>✏️ Cargar …</td><td>Opcional: cargas masivas a mano.</td></tr>
+    </table>
+    <div class="tip">⚠️ Solo <b>Pagos</b> se edita. Las demás se reescriben solas: lo que cambies ahí se pierde. Para cambiar datos de la liga, usá la plataforma.</div>
+  </div>
+
+  <h2 class="s">Tu rutina</h2>
+  <div class="rutina">
+    <div><span>📥</span><div><b>Cuando haya recibidos</b><br><span style="font-size:15px;color:var(--muted)">Revisás y aprobás los clubes. Un número rojo te avisa.</span></div></div>
+    <div><span>💳</span><div><b>Cuando un club paga</b><br><span style="font-size:15px;color:var(--muted)">Lo marcás en la pestaña Pagos de Drive.</span></div></div>
+    <div><span>📅</span><div><b>Antes de cada fecha</b><br><span style="font-size:15px;color:var(--muted)">Revisás el fixture y que los planilleros tengan partido.</span></div></div>
+    <div><span>✏️</span><div><b>Después de cada partido</b><br><span style="font-size:15px;color:var(--muted)">Si hubo un error, lo corregís desde el Fixture.</span></div></div>
+  </div>
+
+  <h2 class="s">Preguntas rápidas</h2>
+  <details><summary>Un club mandó mal un dato</summary><p>Podés <b>Quitar</b> a ese jugador de lo recibido, o rechazar el envío para que el club lo cargue de nuevo. Si ya lo aprobaste, corregilo en la ficha del jugador.</p></details>
+  <details><summary>Un jugador juega en otro club</summary><p>Si el DNI ya está en la liga, el sistema te lo avisa al aprobar. Revisá antes de aprobar.</p></details>
+  <details><summary>Quiero agregar un jugador a mano</summary><p>Gestión → Clubes y jugadores → el club → <b>+ Jugador</b>. Marcá todas sus categorías.</p></details>
+  <details><summary>Cambié algo en la hoja de Drive y se borró</summary><p>Es normal: salvo Pagos, la hoja se reescribe sola desde la plataforma. Hacé los cambios en la plataforma.</p></details>
+  <details><summary>Quiero ver los cambios ya en Drive</summary><p>En la hoja: menú 🏀 TU LIGA → <b>Actualizar desde TU LIGA ahora</b>.</p></details>
+
+  <div class="cta"><a class="btn" href="index.html?liga=mar-y-sierra#/gestion">🛠️ Ir a Gestión</a></div>
+</main>
+<footer>Hecho con <b>TU LIGA</b> · <a href="presentacion.html">Inicio</a> · <a href="guia-club.html">Guía para clubes</a></footer>
+</body>
+</html>
