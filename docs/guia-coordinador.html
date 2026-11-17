@@ -96,7 +96,7 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
     <span class="t">Guía para la coordinación</span>
     <h1>Manejá la liga desde el celular</h1>
     <p>Una sola tarea de chequeo en la hoja de Drive; todo lo demás, en la plataforma.</p>
-    <div class="indice"><a href="#ruta">🧭 Recorrido completo</a><a href="#p1">Entrar</a><a href="#p2">Habilitar jugadores</a><a href="#p3">Equipos</a><a href="#p4">Escudos</a><a href="#p5">Clubes</a><a href="#p6">Fixture</a><a href="#p7">Corregir</a><a href="#p8">Cuentas</a><a href="#p9">Drive</a></div>
+    <div class="indice"><a href="#ruta">🧭 Recorrido completo</a><a href="#p1">Entrar</a><a href="#p2">Habilitar jugadores</a><a href="#p3">Equipos</a><a href="#p4">Escudos</a><a href="#p5">Clubes</a><a href="#p6">Fixture</a><a href="#p7">Zonas</a><a href="#p8">Corregir</a><a href="#p9">Cuentas</a><a href="#p10">Drive</a></div>
   </div>
 
   <div class="cuadro" id="ruta">
@@ -201,7 +201,20 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
   </div>
 
   <div class="paso" id="p7">
-    <div class="cab"><div class="n">7</div><h2>Corregir un partido</h2></div>
+    <div class="cab"><div class="n">7</div><h2>Zonas y playoffs</h2></div>
+    <p>Si una categoría juega la fase regular en <b>zonas</b>, las armás vos. En <b>Gestión → 🗂️ Zonas y playoffs</b>. Todo es libre: vos decidís el nombre de las zonas, quién clasifica y cómo se desempata.</p>
+    <div class="tel"><div class="barra"></div>
+      <div class="m-card"><div class="r"><b>Zona A</b><small>4 equipos</small></div></div>
+      <div class="m-card"><div class="r"><b>ALPHA</b><small>Zona A</small></div><small>Clasificación: <b>Clasificado a cuartos</b> · Desempate #1</small></div>
+      <div class="m-2"><div class="m-btn">+ Crear zona</div><div class="m-btn g">+ Semifinal</div></div>
+    </div>
+    <div class="tip"><b>Cómo se arma:</b><br>1️⃣ <b>Creá las zonas</b> que necesites (Zona A, Zona B, Grupo 1…).<br>2️⃣ <b>Asigná cada equipo a su zona</b> y tocá Guardar equipo.<br>3️⃣ En <b>⚡ Armar solo</b> elegí la zona para armar el todos contra todos dentro de ella.</div>
+    <div class="tip">📊 <b>La tabla se calcula sola por zona</b> (puntos y diferencia), pero <b>no decide quién clasifica</b>:<br>• <b>Clasificación:</b> escribís lo que quieras (“Clasificado a cuartos”, “Repechaje”…) y se ve en la tabla pública.<br>• <b>Desempate #:</b> si dos equipos empatan, ponés 1, 2, 3… y ese orden manda.</div>
+    <div class="tip">🏆 <b>Playoffs, a tu manera:</b> creás cada partido en el Fixture con la fase que quieras (Cuartos de final, Semifinal, Final o una inventada). Los atajos de la pantalla Zonas y playoffs te dejan empezar con un toque. <b>No suman a la tabla</b> de la fase regular y se muestran en la pestaña <b>Tabla</b> de la web, agrupados por fase.</div>
+  </div>
+
+  <div class="paso" id="p8">
+    <div class="cab"><div class="n">8</div><h2>Corregir un partido</h2></div>
     <p>¿Se cargó mal una jugada? En el Fixture, abrí el partido <b>cerrado</b> y tocá <b>✏️ Corregir</b>.</p>
     <div class="tel"><div class="barra"></div>
       <div class="m-card"><div class="r"><b>ALPHA 71 – 68 BETA</b><span class="m-pill o">Final</span></div><div class="m-btn g">✏️ Corregir</div></div>
@@ -209,8 +222,8 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
     <div class="tip">Las correcciones quedan registradas y el marcador se <b>recalcula solo</b>.</div>
   </div>
 
-  <div class="paso" id="p8">
-    <div class="cab"><div class="n">8</div><h2>Cuentas de la liga</h2></div>
+  <div class="paso" id="p9">
+    <div class="cab"><div class="n">9</div><h2>Cuentas de la liga</h2></div>
     <p>En <b>Gestión → 👥 Cuentas de la liga</b> están la cuenta de coordinación y las 5 de planilleros.</p>
     <div class="tel"><div class="barra"></div>
       <div class="m-card"><div class="r"><b>Planillero 1</b><small>🟢 libre</small></div><div class="m-2"><div class="m-btn g" style="height:38px">🔑 Cambiar clave</div><div class="m-btn g" style="height:38px">🔓 Liberar cuenta</div></div></div>
@@ -218,14 +231,14 @@ footer{text-align:center;color:var(--muted);font-size:14px;padding:26px 0 50px}
     <div class="tip">🔑 <b>Cambiar clave</b> cuando se la pasás a otra persona.<br>🔓 <b>Liberar cuenta</b> si quedó una sesión abierta en un celular que ya no está.</div>
   </div>
 
-  <div class="paso" id="p9">
-    <div class="cab"><div class="n">9</div><h2>La hoja de Drive, pestaña por pestaña</h2></div>
+  <div class="paso" id="p10">
+    <div class="cab"><div class="n">10</div><h2>La hoja de Drive, pestaña por pestaña</h2></div>
     <p>Es tu hoja de trabajo para <b>habilitar</b> y una copia ordenada de la liga para <b>consultar</b>. Cada pestaña tiene filtros en el encabezado.</p>
     <table class="tabla">
       <tr><th>Pestaña</th><th>Para qué</th></tr>
       <tr><td>✅ Habilitación</td><td><b>Tu tarea.</b> Jugador por jugador: Pagó y Habilitado.</td></tr>
       <tr><td>🛡️ Clubes</td><td>Automática: por club y categoría, ✅ habilitado o ⏳ cuántos lleva; y si el club pagó.</td></tr>
-      <tr><td>📅 Fixture · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga (se arma en la plataforma). El Fixture incluye resultado, ganador y árbitros.</td></tr>
+      <tr><td>📅 Fixture · Tabla · Estadísticas · Jugadas</td><td>Espejo de la liga (se arma en la plataforma). El Fixture incluye resultado, ganador y árbitros; la Tabla, la zona y tu marca de clasificación.</td></tr>
       <tr><td>✏️ Cargar fixture / resultados</td><td>Opcional: cargas masivas, por ejemplo pegar un fixture entero desde Excel.</td></tr>
     </table>
     <div class="tip">⚠️ Solo editás las columnas <b>Pagó, Fecha de pago, Habilitado y Observaciones</b> de Habilitación. Todo lo demás se reescribe solo.<br>🔄 La hoja se actualiza sola cada 5 minutos; para verlo al instante: menú 🏀 TU LIGA → <b>Actualizar desde TU LIGA ahora</b>.</div>

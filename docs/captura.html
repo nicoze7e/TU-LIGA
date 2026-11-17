@@ -328,6 +328,9 @@ details.est{margin:6px 0 10px}details.est summary{min-height:44px;display:flex;a
 .s1 .chips .pp .nm{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .s1 .chips .pp .rz{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .chips.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cb{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;padding-top:8px;border-top:1px dashed #ffffff30}
+.cb .op{min-height:38px;font-size:12px}
+.cb small{grid-column:1/3;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 .op{flex:1;min-height:42px;padding:0 8px;border-radius:10px;font:600 13px var(--f-body);background:color-mix(in srgb,var(--bt) 78%,#fff);color:#fff;border:1px solid #ffffff30}
 .op.tl,.op.tv{border-bottom:4px solid var(--c1)}
 .op.ban{flex:1 1 calc(33% - 5px)}
@@ -650,6 +653,7 @@ function desc(e){
   const q=qlab(e.cuarto)+' · '+mmss(qlen(e.cuarto)-(e.t-qstart(e.cuarto)))+' · ';
   if(e.tipo==='TM')return q+tn(e.equipo)+' · Tiempo muerto';
   if(e.tipo==='CAMBIO')return q+tn(e.equipo)+' · '+(!e.j2?'Sale '+quien(e)+' sin reemplazo':!e.jug?'Entra '+quien(e,e.j2)+' (suma un jugador)':'Cambio: sale '+quien(e)+', entra '+quien(e,e.j2));
+  if(e.tipo==='FALTA'&&(e.det==='entrenador'||e.det==='banco'))return q+tn(e.equipo)+' · Falta técnica al '+(e.det==='entrenador'?'entrenador':'banco');
   if(e.tipo==='FALTA')return q+tn(e.equipo)+' · Falta '+(e.det==='tecnica'?'técnica':e.det)+' · '+quien(e);
   return q+tn(e.equipo)+' · '+ETQ[e.tipo]+(e.tipo==='REB'?({O:' ofensivo',D:' defensivo'})[repDet(e)]||'':'')+(e.tipo==='PER'&&e.ref?' tras robo':'')+' · '+(e.jug?quien(e):'sin identificar');
 }
@@ -664,7 +668,8 @@ function calc(list,tn_){
     par:[0,1,2,3].map(()=>({local:0,visitante:0})),perT:{local:0,visitante:0},pts:{},f:{},fte:{},fan:{},desc:{},reb:{},rebo:{},rebd:{},rob:{},per:{},ast:{},min:{},
     c1:{},c2:{},c3:{},x1:{},x2:{},x3:{},
     ft:{local:[0,0,0,0],visitante:[0,0,0,0]},tm:{local:0,visitante:0},jugo:new Set(),
-    tmU:{local:{h1:0,h2:0,ot:{}},visitante:{h1:0,h2:0,ot:{}}}};
+    tmU:{local:{h1:0,h2:0,ot:{}},visitante:{h1:0,h2:0,ot:{}}},
+    tec:{local:{c:0,b:0},visitante:{c:0,b:0}},dqEnt:{}};
   const ent={},val={P1:1,P2:2,P3:3},inc=(o,k)=>{o[k]=(o[k]||0)+1};
   const mapa={P1:'c1',P2:'c2',P3:'c3',X1:'x1',X2:'x2',X3:'x3',REB:'reb',ROB:'rob',PER:'per',AST:'ast',FALTA:'f'};
   for(const e of ord){
@@ -679,6 +684,10 @@ function calc(list,tn_){
         u.h2++}
       else{if((u.ot[e.cuarto]||0)>=1){R.err=nom_+' ya usó su tiempo muerto de este suplementario.';break}u.ot[e.cuarto]=1}
       R.tm[e.equipo]++;continue}
+    if(e.tipo==='FALTA'&&(e.det==='entrenador'||e.det==='banco')){   /* técnica al entrenador (C) o al banco (B): no es de un jugador y no cuenta como falta de equipo */
+      const u=R.tec[e.equipo];u[e.det==='entrenador'?'c':'b']++;
+      if(!R.dqEnt[e.equipo]&&(u.c>=2||u.c+u.b>=3)){R.dqEnt[e.equipo]=u.c>=2?'2 técnicas del entrenador':'3 técnicas entre entrenador y banco';R.warn.push('El entrenador de '+tn(e.equipo)+' quedó descalificado ('+R.dqEnt[e.equipo]+').')}
+      continue}
     if(e.jug&&eqDe(e.jug)!==e.equipo){R.err='El evento «'+desc(e)+'» pone a un jugador en el equipo equivocado.';break}
     if(e.tipo==='QUINTETO'){if(!on.includes(e.jug)){on.push(e.jug);ent[e.jug]=e.t}R.jugo.add(e.jug);continue}
     if(e.tipo==='CAMBIO'){   /* normal (sale y entra) · sin reemplazo (j2 vacío) · suma un jugador (jug vacío) */
@@ -760,9 +769,30 @@ function puntaje(act,eq,id,R,par){
   else if(act==='CAMBIO'){s=(R.min[id]||0)+(R.f[id]||0)*.01;why=Math.round((R.min[id]||0)/60)+' min · '+(R.f[id]||0)+' faltas'}   /* los 3 con más minutos */
   return {s,why};
 }
+/* ---------- Sugerencias con historial (fase 1) ----------
+   El punto de partida es altura y posición (más lo que pasa en este partido). A medida que un jugador acumula minutos, su historial real
+   (rebotes, robos, asistencias, pérdidas, faltas y tiros POR MINUTO) pesa cada vez más: con HK minutos de historial pesa lo mismo que el punto de partida. */
+const HK=120;
+const HIST_ACT={REB:h=>h.reb,ROB:h=>h.rob,PER:h=>h.per,AST:h=>h.ast,FALTA:h=>h.f,'1':h=>h.t1,'2':h=>h.t2,'3':h=>h.t3};
+const HIST_TXT={REB:'rebotes',ROB:'robos',PER:'pérdidas',AST:'asistencias',FALTA:'faltas','1':'libres','2':'dobles','3':'triples'};
+const claveHist=act=>/^[PX][123]$/.test(act)?act[1]:(HIST_ACT[act]?act:null);
+function mezclarHist(act,items){
+  const k=claveHist(act);if(!k||items.length<2)return items;
+  const f=HIST_ACT[k],datos=items.map(it=>{const h=(jd(it.id)||{}).h;return h&&h.min>=10?{h,m:h.min,r:f(h)/h.min}:null});
+  const T=3,e=items.map(it=>Math.exp(it.s/T)),E=e.reduce((a,b)=>a+b,0),prior=e.map(x=>x/E);   // punto de partida → reparto entre los que están en cancha
+  let sumR=0,masa=0;datos.forEach((d,i)=>{if(d){sumR+=d.r;masa+=prior[i]}});
+  if(!(sumR>0))return items;                                                                     // nadie tiene historial de esta acción: queda como estaba
+  return items.map((it,i)=>{
+    const d=datos[i];if(!d)return Object.assign({},it,{s:prior[i]*10});
+    const w=d.m/(d.m+HK),hist=masa*(d.r/sumR),p=(1-w)*prior[i]+w*hist,pp=d.h.pj?f(d.h)/d.h.pj:0,num=String(Math.round(pp*10)/10).replace('.',',');
+    const why=(w>=.35&&!/^marca a/.test(it.why))?num+' '+HIST_TXT[k]+' por partido · '+d.h.pj+' PJ':it.why;
+    return Object.assign({},it,{s:p*10,why});
+  });
+}
 function sugeridos(act,eq,R,excl){
   const par=emparejar(R);
-  return R.on[eq].filter(id=>id!==excl&&!R.desc[id]).map(id=>Object.assign({id},puntaje(act,eq,id,R,par))).sort((a,b)=>b.s-a.s).slice(0,3);
+  const items=R.on[eq].filter(id=>id!==excl&&!R.desc[id]).map(id=>Object.assign({id},puntaje(act,eq,id,R,par)));
+  return mezclarHist(act,items).sort((a,b)=>b.s-a.s).slice(0,3);
 }
 
 /* ---------- Altas, deshacer y corrección (nunca se borra: se anula y se agrega) ---------- */
@@ -992,7 +1022,7 @@ const ladoEq=(eq,html)=>eq==='local'?lados(html,''):lados('',html);
 function vSug(R){
   const u=S.ui,a=u.acc;
   const tit={P1:'Tiro libre',P2:'Doble',P3:'Triple',X1:'Libre errado',X2:'Doble errado',X3:'Triple errado',ROB:'Robo',PER:'Pérdida',FALTA:'Falta',CAMBIO:'Cambio',TM:'Tiempo muerto'};
-  const sub={P1:'¿quién anotó?',P2:'¿quién anotó?',P3:'¿quién anotó?',X1:'¿quién tiró?',X2:'¿quién tiró?',X3:'¿quién tiró?',ROB:'¿quién robó?',PER:'¿quién perdió la bola?',FALTA:'¿quién cometió la falta?',CAMBIO:'¿quién sale? · los 3 con más minutos'};
+  const sub={P1:'¿quién anotó?',P2:'¿quién anotó?',P3:'¿quién anotó?',X1:'¿quién tiró?',X2:'¿quién tiró?',X3:'¿quién tiró?',ROB:'¿quién robó?',PER:'¿quién perdió la bola?',FALTA:'¿quién cometió la falta? · o técnica al entrenador / banco',CAMBIO:'¿quién sale? · los 3 con más minutos'};
   const num=eq=>(x,y)=>(+cam(eq,x.id)||99)-(+cam(eq,y.id)||99);
   const lista=(eq,act,excl)=>{
     if(u.todos)return R.on[eq].filter(id=>id!==excl).map(id=>({id,why:R.desc[id]?'descalificado':''})).sort(num(eq));
@@ -1030,6 +1060,11 @@ function vSug(R){
       banco.length?ladoEq(eq,'<div class="'+(eq==='local'?'tl':'tv')+'"><h4>Banco · '+esc(tn(eq))+'</h4>'+banco.map(x=>pp(eq,x.id,Math.round((R.min[x.id]||0)/60)+' min jugados',false,'ci')).join('')+'</div>'):'<p class="note">No quedan jugadores habilitados en el banco.</p>',
       idp&&(R.desc[idp]||!banco.length)?opcion('Sale sin reemplazo · sigue con '+(n-1),'sinRep'):'');
   }
+  if(a==='FALTA'){                                                   /* además de los jugadores: falta técnica al entrenador o al banco de cada equipo */
+    const cb=eq=>'<div class="cb"><small>Técnica a…</small><button class="op" data-act="fcb" data-eq="'+eq+'" data-v="entrenador">Entrenador</button><button class="op" data-act="fcb" data-eq="'+eq+'" data-v="banco">Banco</button></div>';
+    const col=eq=>colEq(eq,lista(eq,a),'pl').replace(/<\/div>$/,cb(eq)+'</div>');
+    return panel(tit[a],sub[a]||'',lados(col('local'),col('visitante')),tg('Ver los 5'));
+  }
   return panel(tit[a],sub[a]||'',dos(a),tg(a==='CAMBIO'?'Ver todos los jugadores en cancha':'Ver los 5'));
 }
 function tablaMini(R,eq){
@@ -1040,7 +1075,7 @@ function tablaMini(R,eq){
 }
 function tablaCancha(R,eq,faltasEq){
   const ids=R.on[eq].slice().sort((a,b)=>(+cam(eq,a)||99)-(+cam(eq,b)||99));
-  return '<div class="'+(eq==='local'?'tl':'tv')+'"><h4>'+esc(tn(eq))+' · '+R.sc[eq]+' <small>faltas del cuarto '+faltasEq+(faltasEq>=PENAL?' 🚩':'')+'</small></h4><div class="tblw"><table class="tm"><thead><tr><th>En cancha</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Fal</th><th>Val</th></tr></thead><tbody>'
+  return '<div class="'+(eq==='local'?'tl':'tv')+'"><h4>'+esc(tn(eq))+' · '+R.sc[eq]+' <small>faltas del cuarto '+faltasEq+(faltasEq>=PENAL?' 🚩':'')+(R.tec[eq].c||R.tec[eq].b?' · técnicas: entrenador '+R.tec[eq].c+' · banco '+R.tec[eq].b+(R.dqEnt[eq]?' ⛔':''):'')+'</small></h4><div class="tblw"><table class="tm"><thead><tr><th>En cancha</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Fal</th><th>Val</th></tr></thead><tbody>'
   +ids.map(id=>'<tr class="'+(R.desc[id]?'dq':'on')+'"><td><b class="num">'+esc(cam(eq,id))+'</b> '+esc(corto(nom(id).n))+(R.desc[id]?' <span class="badge bad">desc.</span>':'')+'</td><td data-min="'+id+'">'+mmss(R.min[id]||0)+'</td><td>'+(R.pts[id]||0)+'</td><td>'+(R.reb[id]||0)+'</td><td>'+(R.ast[id]||0)+'</td><td>'+(R.rob[id]||0)+'</td><td'+((R.f[id]||0)>=4?' class="fl4"':'')+'>'+(R.f[id]||0)+'</td><td class="v">'+valo(R,id)+'</td></tr>').join('')
   +'</tbody></table></div></div>';
 }
@@ -1135,14 +1170,15 @@ function vCorr(){
   const c=S.ui.corr;if(!c)return '';
   const e=S.ev.find(x=>x.id===c.id);if(!e)return '';
   const modos=[];
-  if(NEEDJ.includes(e.tipo)){modos.push(['jugador','Cambiar jugador'],['equipo','Cambiar equipo']);
+  if(e.tipo==='FALTA'&&!e.jug)modos.push(['equipo','Cambiar equipo']);
+  else if(NEEDJ.includes(e.tipo)){modos.push(['jugador','Cambiar jugador'],['equipo','Cambiar equipo']);
     if(PUNTOS.includes(e.tipo)||ERRADOS.includes(e.tipo)||e.tipo==='FALTA')modos.push(['tipo',e.tipo==='FALTA'?'Cambiar tipo de falta':ERRADOS.includes(e.tipo)?'Cambiar ✗1 / ✗2 / ✗3':'Cambiar +1 / +2 / +3'])}
   if(e.tipo==='TM')modos.push(['equipo','Cambiar equipo']);
   if(e.tipo==='CAMBIO'&&e.j2&&e.jug)modos.push(['j2','Cambiar quién entra']);
   modos.push(['cuarto','Mover de período'],['anular','Anular evento']);
   let opts='';
   if(c.modo==='jugador')opts=pres(e.equipo).filter(j=>j.id!==e.jug).map(j=>[j.id,'#'+cam(e.equipo,j.id)+' '+corto(j.n)]);
-  if(c.modo==='equipo')opts=e.tipo==='TM'?[[otro(e.equipo),'Pasar a '+tn(otro(e.equipo))]]:pres(otro(e.equipo)).map(j=>[j.id,tn(otro(e.equipo))+' · #'+cam(otro(e.equipo),j.id)+' '+corto(j.n)]);
+  if(c.modo==='equipo')opts=(e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug))?[[otro(e.equipo),'Pasar a '+tn(otro(e.equipo))]]:pres(otro(e.equipo)).map(j=>[j.id,tn(otro(e.equipo))+' · #'+cam(otro(e.equipo),j.id)+' '+corto(j.n)]);
   if(c.modo==='tipo')opts=e.tipo==='FALTA'?FALTAS.filter(f=>f[0]!==e.det).map(f=>[f[0],f[1]]):(ERRADOS.includes(e.tipo)?ERRADOS:PUNTOS).filter(t=>t!==e.tipo).map(t=>[t,ETQ[t]]);
   if(c.modo==='cuarto')opts=S.ev.reduce((m,x)=>Math.max(m,x.cuarto),4)&&Array.from({length:Math.max(4,...S.ev.map(x=>x.cuarto))},(_,i)=>i+1).filter(q=>q!==e.cuarto).map(q=>[String(q),qlab(q)+(q<=4?' cuarto':'')]);
   if(c.modo==='j2')opts=pres(e.equipo).filter(j=>j.id!==e.jug&&j.id!==e.j2).map(j=>[j.id,'#'+cam(e.equipo,j.id)+' '+corto(j.n)]);
@@ -1163,7 +1199,7 @@ function cambioObj(e,c){
   if(c.modo==='anular')return {anular:true};
   if(!c.modo||c.val==null)return null;
   if(c.modo==='jugador')return {jug:c.val};
-  if(c.modo==='equipo')return e.tipo==='TM'?{equipo:otro(e.equipo)}:{equipo:otro(e.equipo),jug:c.val};
+  if(c.modo==='equipo')return (e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug))?{equipo:otro(e.equipo)}:{equipo:otro(e.equipo),jug:c.val};
   if(c.modo==='tipo')return e.tipo==='FALTA'?{det:c.val}:{tipo:c.val};
   if(c.modo==='cuarto')return {cuarto:+c.val};
   if(c.modo==='j2')return {j2:c.val};
@@ -1349,11 +1385,12 @@ function tablaPdf(x,y,cols,filas,color,sobre,rh){
 function filasEq(R,eq){
   const ids=pres(eq).map(j=>j.id).sort((a,b)=>(+cam(eq,a)||99)-(+cam(eq,b)||99)),jugo=id=>R.jugo.has(id)||R.min[id];
   const f=(fn,id)=>{const q=fn(R,id);return q.a?q.m+'/'+q.a:'–'},T=fn=>{const q=tot(R,eq,fn);return q.a?q.m+'/'+q.a:'–'};
-  const filas=ids.map(id=>({dq:!!R.desc[id]||!jugo(id),v:['#'+cam(eq,id)+' '+corto(nom(id).n)+(R.desc[id]?' (desc.)':!jugo(id)?' (no jugó)':''),mmss(R.min[id]||0),R.pts[id]||0,f(tc,id),f(t3,id),f(tl,id),R.rebo[id]||0,R.rebd[id]||0,R.reb[id]||0,R.ast[id]||0,R.rob[id]||0,R.per[id]||0,R.f[id]||0,valo(R,id)]}));
-  filas.push({tot:1,v:['Equipo','',R.sc[eq],T(tc),T(t3),T(tl),sumEq(R,eq,'rebo'),sumEq(R,eq,'rebd'),sumEq(R,eq,'reb'),sumEq(R,eq,'ast'),sumEq(R,eq,'rob'),sumEq(R,eq,'per'),sumEq(R,eq,'f'),r1(ids.reduce((a,id)=>a+valo(R,id),0))]});
+  const pj=(fn,id)=>{const q=fn(R,id);return q.a?Math.round(100*q.m/q.a)+'%':'–'},PT=fn=>{const q=tot(R,eq,fn);return q.a?Math.round(100*q.m/q.a)+'%':'–'};   /* porcentaje de tiro */
+  const filas=ids.map(id=>({dq:!!R.desc[id]||!jugo(id),v:['#'+cam(eq,id)+' '+corto(nom(id).n)+(R.desc[id]?' (desc.)':!jugo(id)?' (no jugó)':''),mmss(R.min[id]||0),R.pts[id]||0,f(tc,id),pj(tc,id),f(t3,id),pj(t3,id),f(tl,id),pj(tl,id),R.rebo[id]||0,R.rebd[id]||0,R.reb[id]||0,R.ast[id]||0,R.rob[id]||0,R.per[id]||0,R.f[id]||0,valo(R,id)]}));
+  filas.push({tot:1,v:['Equipo','',R.sc[eq],T(tc),PT(tc),T(t3),PT(t3),T(tl),PT(tl),sumEq(R,eq,'rebo'),sumEq(R,eq,'rebd'),sumEq(R,eq,'reb'),sumEq(R,eq,'ast'),sumEq(R,eq,'rob'),sumEq(R,eq,'per'),sumEq(R,eq,'f'),r1(ids.reduce((a,id)=>a+valo(R,id),0))]});
   return filas;
 }
-const COLS_JUG=[['Jugador',200,'l'],['MIN',80],['PTS',64],['TC',96],['3P',84],['TL',84],['RO',56],['RD',56],['REB',64],['AST',64],['ROB',64],['PER',64],['FAL',64],['VAL',80]];
+const COLS_JUG=[['Jugador',200,'l'],['MIN',64],['PTS',52],['TC',74],['TC%',54],['3P',66],['3P%',54],['TL',66],['TL%',54],['RO',46],['RD',46],['REB',52],['AST',52],['ROB',52],['PER',52],['FAL',52],['VAL',84]];
 function informe(R,parcial){
   /* Una sola hoja A4: el alto de las filas se ajusta solo según cuántos jugadores haya */
   const P=paleta(),gl=R.sc.local>R.sc.visitante,empate=R.sc.local===R.sc.visitante;
@@ -1386,12 +1423,13 @@ function informe(R,parcial){
   const rb=eq=>sumEq(R,eq,'reb')+'  (of. '+sumEq(R,eq,'rebo')+' · def. '+sumEq(R,eq,'rebd')+')';
   y=tablaPdf(x,y+48,[['',360,'l'],[tn('local'),380],[tn('visitante'),380]],[
     {v:['Tiros de campo',par(tc,'local'),par(tc,'visitante')]},{v:['Triples',par(t3,'local'),par(t3,'visitante')]},{v:['Tiros libres',par(tl,'local'),par(tl,'visitante')]},
-    {v:['Rebotes',rb('local'),rb('visitante')]},{v:['Asistencias'].concat(rr('ast'))},{v:['Robos'].concat(rr('rob'))},{v:['Pérdidas'].concat(rr('per'))},{v:['Faltas'].concat(rr('f'))},{v:['Tiempos muertos',R.tm.local,R.tm.visitante]}],IK.ink,'#fff',RH);
+    {v:['Rebotes',rb('local'),rb('visitante')]},{v:['Asistencias'].concat(rr('ast'))},{v:['Robos'].concat(rr('rob'))},{v:['Pérdidas'].concat(rr('per'))},{v:['Faltas'].concat(rr('f'))},{v:['Técnicas: entrenador / banco',R.tec.local.c+' / '+R.tec.local.b,R.tec.visitante.c+' / '+R.tec.visitante.b]},{v:['Tiempos muertos',R.tm.local,R.tm.visitante]}],IK.ink,'#fff',RH);
   const fg=figura(R),dqs=Object.keys(R.desc);
   x.fillStyle=IK.ink;x.font=FB(23,600);x.textAlign='left';let ty=y+36;
   const linea=t=>{x.fillText(recorta(x,t,1120),60,ty);ty+=30};
   if(fg)linea('Figura: '+nom(fg.id).n+' ('+tn(eqDe(fg.id))+') · valoración '+fg.v);
-  linea('Descalificados: '+(dqs.length?dqs.map(id=>nom(id).n+' ('+R.desc[id]+')').join(', '):'ninguno')+'   ·   Correcciones durante el partido: '+S.corr.filter(c=>!c.rev).length);
+  const dqE=Object.keys(R.dqEnt).map(eq=>'Entrenador de '+tn(eq)+' ('+R.dqEnt[eq]+')'),dqT=dqs.map(id=>nom(id).n+' ('+R.desc[id]+')').concat(dqE);
+  linea('Descalificados: '+(dqT.length?dqT.join(', '):'ninguno')+'   ·   Correcciones durante el partido: '+S.corr.filter(c=>!c.rev).length);
   x.fillStyle=IK.mut;x.font=FB(19,500);
   linea('Valoración: pts '+CFG.val.pts+' · reb '+CFG.val.reb+' · rob '+CFG.val.rob+' · ast '+CFG.val.ast+' · pér '+CFG.val.per+' · falta '+CFG.val.falta+' · libre errado '+CFG.val.x1+' · campo errado '+CFG.val.x2+' (borrador)');
   return [p1.c];
@@ -1622,6 +1660,10 @@ const ACT={
   rebNo(){S.ui.reb=null;S.ui.todos=false;render()},
   astNo(){S.ui.ast=null;S.ui.todos=false;render()},
   tmEq(d){if(addEv({equipo:d.eq,jug:null,tipo:'TM',det:null,j2:null}))reg(desc(S.ev[S.ev.length-1]));resetAcc();render()},
+  fcb(d){   /* falta técnica al entrenador o al banco */
+    if(addEv({equipo:d.eq,jug:null,tipo:'FALTA',det:d.v,j2:null})){reg(desc(S.ev[S.ev.length-1]));const R=estado();toast('Falta técnica al '+(d.v==='entrenador'?'entrenador':'banco')+' de '+tn(d.eq)+(R.dqEnt[d.eq]?'. ¡El entrenador quedó descalificado!':'.'))}
+    resetAcc();render()
+  },
   fd(d){
     const u=S.ui,p=u.pf;let mot=null;
     if(addEv({equipo:p.eq,jug:p.id,tipo:'FALTA',det:d.d,j2:null,rk:p.rk})){reg(desc(S.ev[S.ev.length-1]));const R=estado();if(R.desc[p.id]&&R.on[p.eq].includes(p.id))mot=R.desc[p.id]}

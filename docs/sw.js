@@ -1,5 +1,5 @@
 // Guarda la "cáscara" de la web para que abra rápido. Los datos siempre se piden a la red.
-var CACHE = 'liga-v7';
+var CACHE = 'liga-v8';
 var BASE = ['./', 'index.html', 'estilos.css', 'app.js', 'roles.js', 'captura.html', 'formulario.html', 'presentacion.html', 'guia-club.html', 'guia-coordinador.html', 'config.js', 'demo-datos.js', 'manifest.webmanifest', 'icon-192.png', 'icon-180.png', 'logo.svg'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) {

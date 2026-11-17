@@ -61,7 +61,7 @@
   }
 
   /* ---------- datos (en la versión real: Supabase) ---------- */
-  var FASES = ['Fase regular', 'Playoff', 'Cuartos de final', 'Semifinal', 'Final'];
+  var FASES = ['Fase regular', 'Octavos de final', 'Cuartos de final', 'Semifinal', 'Final', '3.er puesto', 'Playoff', 'Repechaje'];
   var POS = { B: 'Base', E: 'Escolta', A: 'Alero', AP: 'Ala-pívot', P: 'Pívot' };
   var PALETA = ['#1f6feb', '#d62839', '#2ea043', '#f5b800', '#8e44ad', '#ff7a1a', '#17a2b8', '#e91e63', '#111111', '#ffffff'];
   function uid() { return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -116,7 +116,7 @@
   function refrescar(cat) { TL().recargar(); }
 
   /* ---------- ganchos hacia app.js ---------- */
-  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-recibidos', 'g-clubes', 'g-club', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
+  var RUTAS = ['entrar', 'cuenta', 'planilla', 'gestion', 'g-fixture', 'g-partido', 'g-armar', 'g-recibidos', 'g-zonas', 'g-clubes', 'g-club', 'g-equipos', 'g-equipo', 'g-jugador', 'g-drive', 'g-cuentas', 'g-liga', 'corregir'];
   function tab(k, def) {
     if (k === 'planilla') return 'planilla';
     if (k === 'gestion' || /^g-/.test(k)) return 'gestion';
@@ -151,6 +151,8 @@
       todo(function () { return sb.from('vista_tabla').select('*').in('categoria_id', ids).order('categoria_id').order('posicion'); }),
       todo(function () { return sb.from('vista_planilla_claims').select('*').order('partido_id'); })
     ]);
+    try { D.vista_zonas = await todo(function () { return sb.from('vista_zonas').select('*').in('categoria_id', ids).order('orden'); }); } catch (ez) { D.vista_zonas = []; }
+    try { D.vista_stats_jugador = await todo(function () { return sb.from('vista_stats_jugador').select('*').in('categoria_id', ids).order('jugador_id'); }); } catch (es) { D.vista_stats_jugador = []; }
     D.vista_equipos = r[0]; D.vista_jugadores = r[1]; D.vista_partidos = r[2]; D.vista_tabla = r[3];
     var claims = {}; r[4].forEach(function (x) { claims[x.partido_id] = x.planillero; });
     D.vista_partidos.forEach(function (p) { p.claim = claims[p.id] || null; });
@@ -280,6 +282,7 @@
       case 'g-partido': return vGPartido(p[1], r.q);
       case 'g-armar': return vGArmar();
       case 'g-recibidos': return vGRecibidos();
+      case 'g-zonas': return vGZonas();
       case 'g-clubes': return vGClubes();
       case 'g-club': return vGClub(p[1]);
       case 'g-equipos': return vGEquipos(r.q);
@@ -412,11 +415,20 @@
     });
     return h + '<div class="ayuda">Un partido, un planillero: al empezar, el partido queda tuyo y nadie más puede abrirlo. Si se te corta, volvés a entrar y seguís donde estabas.</div>';
   }
+  function histDe(jid) {                              // historial del jugador (sumado de todos sus equipos): lo usa la planilla para sugerir con datos reales
+    var h = null;
+    (D.vista_stats_jugador || []).forEach(function (s) {
+      if (s.jugador_id !== jid) return; h = h || { pj: 0, min: 0, reb: 0, ast: 0, rob: 0, per: 0, f: 0, t1: 0, t2: 0, t3: 0 };
+      var pj = +s.pj || 0; h.pj += pj; h.min += pj * (+s.min_prom || 0); h.reb += +s.reb || 0; h.ast += +s.ast || 0; h.rob += +s.rob || 0; h.per += +s.per || 0; h.f += +s.faltas || 0;
+      h.t1 += +s.tl_int || 0; h.t3 += +s.t3_int || 0; h.t2 += Math.max(0, (+s.tc_int || 0) - (+s.t3_int || 0));
+    });
+    return h;
+  }
   function payload(p) {
     var teams = {}, ids = {}, n = 0, keyDe = {};
     equipos(p.categoria_id).forEach(function (e) {
       var k = 'E' + (++n); keyDe[e.id] = k; ids[k] = e.id;
-      teams[k] = { nombre: e.nombre, escudo: e.logo_url || null, c1: e.color_principal, c2: e.color_alternativo || '#FFFFFF', jug: jugadores(e.id).filter(function (j) { return j.habilitado !== false; }).map(function (j) { return { n: nombreDe(j), alt: j.altura_cm || 185, pos: posDe(j), cam: j.camiseta_habitual, id: j.id }; }) };
+      teams[k] = { nombre: e.nombre, escudo: e.logo_url || null, c1: e.color_principal, c2: e.color_alternativo || '#FFFFFF', jug: jugadores(e.id).filter(function (j) { return j.habilitado !== false; }).map(function (j) { return { n: nombreDe(j), alt: j.altura_cm || 185, pos: posDe(j), cam: j.camiseta_habitual, id: j.id, h: histDe(j.id) }; }) };
     });
     var tabla0 = {};
     D.vista_tabla.filter(function (t) { return t.categoria_id === p.categoria_id; }).forEach(function (t) { if (keyDe[t.equipo_id]) tabla0[keyDe[t.equipo_id]] = { pj: t.pj, pg: t.pg, pp: t.pp, pf: t.pf, pc: t.pc }; });
@@ -556,6 +568,7 @@
     var prox = partidos(cat).filter(function (p) { return p.estado === 'programado'; })[0];
     return '<h1>Gestión de la liga</h1>' + nube() + chipsCat() +
       '<a class="card gcard" href="#/g-fixture"><span><b>📅 Fixture</b><br><span class="muted sm">Armar y cambiar los partidos. La web y los planilleros lo siguen.</span><br><span class="sm muted">' + np + ' partidos' + (prox ? ' · próximo: ' + esc(new Date(prox.fecha_hora).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })) : '') + '</span></span><span>›</span></a>' +
+      '<a class="card gcard" href="#/g-zonas"><span><b>🗂️ Zonas y playoffs</b><br><span class="muted sm">Armá las zonas de la fase regular, decidí quién clasifica y armá los playoffs a tu manera.</span><br><span class="sm muted">' + zonas(cat).length + (zonas(cat).length === 1 ? ' zona' : ' zonas') + ' en esta categoría</span></span><span>›</span></a>' +
       '<a class="card gcard" href="#/g-clubes"><span><b>🛡️ Clubes y jugadores</b><br><span class="muted sm">Cada club con sus equipos. Un equipo se habilita con el mínimo de jugadores en regla (pagaron y están habilitados en la hoja de Drive).</span><br><span class="sm muted">' + ne + ' equipos · ' + nj + ' jugadores · ✅ ' + nHab + ' de ' + ne + ' equipos habilitados</span></span><span>›</span></a>' + recCard +
       '<div class="ayuda">✏️ <b>¿Hay que corregir un partido?</b> Entrá a <b>Fixture</b> como siempre: en los partidos cerrados te aparece el botón <i>Corregir partido</i>.</div><p class="centro"><a class="mini" href="#/g-cuentas">👥 Cuentas de la liga</a> <a class="mini" href="#/g-liga">⚙️ Mi liga</a></p>';
   }
@@ -584,9 +597,9 @@
     var d = nuevo ? (q.fecha ? new Date(q.fecha + 'T12:00:00') : new Date(Date.now() + 86400000)) : new Date(p.fecha_hora);
     var maxN = Math.max.apply(null, [0].concat(partidos(cat).map(function (x) { return x.nro_fecha || 0; })));
     var eqs = equipos(cat).map(function (e) { var st = estadoEq(e.id); return [e.id, e.nombre + (st && !st.ok ? ' · ⏳ sin habilitar' : '')]; });
-    var v = nuevo ? { fase: 'Fase regular', grupo: '', cancha: 'Cancha 1', nro_fecha: maxN + 1, local_id: eqs[0] && eqs[0][0], visitante_id: eqs[1] && eqs[1][0] } : p;
+    var v = nuevo ? { fase: q.fase != null ? q.fase : 'Fase regular', grupo: '', cancha: 'Cancha 1', nro_fecha: maxN + 1, local_id: eqs[0] && eqs[0][0], visitante_id: eqs[1] && eqs[1][0] } : p;
     return '<h1>' + (nuevo ? 'Nuevo partido' : 'Editar partido') + '</h1><p class="muted sm" style="margin-top:-6px">Categoría ' + esc(catNombre(cat)) + '</p>' +
-      '<div class="grid2"><label class="campo"><span>Fase</span>' + sel('fFase', FASES.map(function (f) { return [f, f]; }), v.fase) + '</label><label class="campo"><span>Grupo</span>' + sel('fGrupo', [['', 'Sin grupo'], ['A', 'Grupo A'], ['B', 'Grupo B'], ['C', 'Grupo C'], ['D', 'Grupo D']], v.grupo || '') + '</label></div>' +
+      '<div class="grid2"><label class="campo"><span>Fase (elegí o escribí la que quieras)</span><input id="fFase" list="fasesL" value="' + esc(v.fase || '') + '" maxlength="40" autocomplete="off"></label><label class="campo"><span>Zona / grupo (opcional)</span><input id="fGrupo" list="zonasL" value="' + esc(v.grupo || '') + '" maxlength="20" autocomplete="off"></label></div><datalist id="fasesL">' + FASES.map(function (f) { return '<option value="' + esc(f) + '">'; }).join('') + '</datalist><datalist id="zonasL">' + zonas(cat).map(function (z) { return '<option value="' + esc(z.nombre) + '">'; }).join('') + '</datalist>' +
       '<div class="grid2"><label class="campo"><span>Fecha</span><input id="fFecha" type="date" value="' + ymd(d) + '"></label><label class="campo"><span>Hora</span><input id="fHora" type="time" value="' + (nuevo ? '20:00' : hm(d)) + '"></label></div>' +
       '<div class="grid2"><label class="campo"><span>Cancha</span><input id="fCancha" value="' + esc(v.cancha || '') + '"></label><label class="campo"><span>Nº de fecha</span><input id="fNro" type="number" min="1" value="' + (v.nro_fecha || 1) + '"></label></div>' +
       '<div class="grid2"><label class="campo"><span>Local</span>' + sel('fLocal', eqs, v.local_id) + '</label><label class="campo"><span>Visitante</span>' + sel('fVisit', eqs, v.visitante_id) + '</label></div><div class="err" id="fErr"></div>' +
@@ -597,7 +610,8 @@
   function vGArmar() {
     var cat = gcat(), d = new Date(); d.setDate(d.getDate() + ((3 - d.getDay() + 7) % 7 || 7));
     return '<h1>Armar solo</h1>' + chipsCat() + '<p class="muted sm">Propone todos contra todos de la categoría <b>' + esc(catNombre(cat)) + '</b> con los equipos cargados. Después ajustás lo que quieras partido por partido.</p>' +
-      '<label class="campo"><span>Fase</span>' + sel('aFase', FASES.map(function (f) { return [f, f]; }), 'Fase regular') + '</label>' +
+      '<label class="campo"><span>Fase (elegí o escribí la que quieras)</span><input id="aFase" list="fasesL" value="Fase regular" maxlength="40" autocomplete="off"></label><datalist id="fasesL">' + FASES.map(function (f) { return '<option value="' + esc(f) + '">'; }).join('') + '</datalist>' +
+      (zonas(cat).length ? '<label class="campo"><span>Zona</span><select id="aZona"><option value="">Todos los equipos de la categoría</option>' + zonas(cat).map(function (z) { return '<option value="' + z.id + '">' + esc(z.nombre) + '</option>'; }).join('') + '</select></label>' : '') +
       '<div class="grid2"><label class="campo"><span>Primera fecha</span><input id="aFecha" type="date" value="' + ymd(d) + '"></label><label class="campo"><span>Hora del primero</span><input id="aHora" type="time" value="20:00"></label></div>' +
       '<div class="grid2"><label class="campo"><span>Días entre fechas</span><input id="aDias" type="number" min="1" value="7"></label><label class="campo"><span>Partidos por fecha</span><input id="aPpf" type="number" min="1" value="2"></label></div>' +
       '<div class="grid2"><label class="campo"><span>Canchas</span><input id="aCanchas" type="number" min="1" max="4" value="1"></label><label class="campo"><span>Minutos entre partidos</span><input id="aMin" type="number" min="30" value="90"></label></div><div class="err" id="aErr"></div>' +
@@ -695,6 +709,38 @@
     }).join('');
   }
 
+  /* ---- zonas y playoffs: el coordinador arma las zonas que quiera, decide a mano quién clasifica y cómo se desempata ---- */
+  function zonas(cat) { return (D.vista_zonas || []).filter(function (z) { return z.categoria_id === cat; }).sort(function (a, b) { return (a.orden - b.orden) || (a.nombre < b.nombre ? -1 : 1); }); }
+  function esRegular(p) { var f = String(p.fase || '').trim().toLowerCase(); return !f || f === 'fase regular' || f === 'regular'; }
+  function vGZonas() {
+    var cat = gcat(), zs = zonas(cat), eqs = equipos(cat).slice().sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+    var h = '<h1>Zonas y playoffs</h1>' + nube() + chipsCat() +
+      '<div class="ayuda">🗂️ <b>Las zonas son la fase regular.</b> Armás las que quieras y repartís los equipos. La tabla se calcula sola <b>por zona</b>, pero <b>vos decidís quién clasifica</b> y cómo se desempata.</div>' +
+      '<h2>Zonas de ' + esc(catNombre(cat)) + '</h2>';
+    h += zs.map(function (z) {
+      var n = eqs.filter(function (e) { return e.zona_id === z.id; }).length;
+      return '<div class="card"><div class="grid2" style="align-items:end"><label class="campo" style="margin:0"><span>' + n + (n === 1 ? ' equipo' : ' equipos') + '</span><input id="zn-' + z.id + '" value="' + esc(z.nombre) + '" maxlength="40"></label>' +
+        '<div style="display:flex;gap:8px"><button class="btn" data-a="zGuardar" data-id="' + z.id + '" type="button">Guardar</button><button class="btn mal" data-a="zBorrar" data-id="' + z.id + '" type="button">Borrar</button></div></div></div>';
+    }).join('') || '<p class="muted sm">Todavía no hay zonas. Podés crear las que necesites (Zona A, Zona B, Grupo 1…).</p>';
+    h += '<div class="grid2" style="align-items:end;margin-top:8px"><label class="campo" style="margin:0"><span>Nueva zona</span><input id="zNueva" placeholder="Ej.: Zona A" maxlength="40" autocapitalize="words"></label><button class="btn p" data-a="zCrear" data-cat="' + cat + '" type="button">+ Crear zona</button></div>' +
+      '<div class="err" id="zErr"></div>' +
+      '<h2>Equipos</h2><p class="sm muted" style="margin-top:-4px">Elegí la zona de cada equipo. En <b>Clasificación</b> anotás lo que quieras (queda visible en la tabla) y, si hay empate, ponés el <b>orden de desempate</b> (1 = primero).</p><datalist id="zcl"><option value="Clasificado"><option value="Clasificado a cuartos"><option value="Repechaje"><option value="Eliminado"></datalist>';
+    h += eqs.map(function (e) {
+      return '<div class="card"><div class="fila"><b>' + dot(e.color_principal) + esc(e.nombre) + '</b></div>' +
+        '<div class="grid2"><label class="campo"><span>Zona</span><select id="ze-' + e.id + '"><option value="">Sin zona</option>' + zs.map(function (z) { return '<option value="' + z.id + '"' + (e.zona_id === z.id ? ' selected' : '') + '>' + esc(z.nombre) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="campo"><span>Desempate #</span><input id="zo-' + e.id + '" type="number" min="1" max="99" inputmode="numeric" value="' + (e.orden_manual || '') + '" placeholder="—"></label></div>' +
+        '<label class="campo"><span>Clasificación (a tu criterio)</span><input id="zc-' + e.id + '" list="zcl" maxlength="40" value="' + esc(e.clasificacion || '') + '" placeholder="Ej.: Clasificado a cuartos"></label>' +
+        '<button class="btn p full" data-a="zEquipo" data-id="' + e.id + '" type="button">Guardar equipo</button></div>';
+    }).join('') || '<p class="vacio">No hay equipos en esta categoría.</p>';
+    var po = partidos(cat).filter(function (p) { return !esRegular(p); }), grupos = {}, orden = [];
+    po.forEach(function (p) { if (!grupos[p.fase]) { grupos[p.fase] = []; orden.push(p.fase); } grupos[p.fase].push(p); });
+    h += '<h2>Playoffs</h2><div class="ayuda">🏆 <b>Los armás vos, con tus cruces.</b> Creás cada partido en el Fixture con la fase que quieras. Los playoffs <b>no suman</b> a la tabla de la fase regular, y se ven en la web en la pestaña Tabla.</div>' +
+      '<div class="chips">' + ['Octavos de final', 'Cuartos de final', 'Semifinal', 'Final', '3.er puesto'].map(function (f) { return '<a class="chip" href="#/g-partido/nuevo?cat=' + cat + '&fase=' + encodeURIComponent(f) + '">+ ' + esc(f) + '</a>'; }).join('') + '<a class="chip" href="#/g-partido/nuevo?cat=' + cat + '&fase=">+ Otra fase</a></div>';
+    h += orden.map(function (f) {
+      return '<h3 style="margin:14px 0 4px">' + esc(f) + '</h3>' + grupos[f].map(function (p) { return '<a class="card fila" href="#/g-partido/' + p.id + '"><span><b>' + esc(p.local_nombre) + ' vs ' + esc(p.visitante_nombre) + '</b><br><span class="sm muted">' + (p.estado === 'cerrado' ? p.marcador_local + ' – ' + p.marcador_visitante : new Date(p.fecha_hora).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })) + '</span></span><span class="muted sm">' + (p.estado === 'cerrado' ? 'Final' : p.estado === 'en_vivo' ? 'En vivo' : 'Programado') + ' ›</span></a>'; }).join('');
+    }).join('');
+    return h;
+  }
   function vGClubes() {
     var q = kClub(ST.cq || ''), lista = clubes().filter(function (c) { return !q || c.key.indexOf(q) >= 0; });
     var h = '<h1>Clubes y jugadores</h1>' + nube() +
@@ -865,7 +911,7 @@
       });
     },
     armar: async function () {
-      var cat = gcat(), eq = equipos(cat), er = document.getElementById('aErr');
+      var cat = gcat(), zsel = (document.getElementById('aZona') || {}).value || '', eq = equipos(cat).filter(function (x) { return !zsel || x.zona_id === zsel; }), er = document.getElementById('aErr');
       if (eq.length < 2) { er.textContent = 'Hacen falta al menos 2 equipos.'; return; }
       var f0 = document.getElementById('aFecha').value, h0 = document.getElementById('aHora').value, dias = +document.getElementById('aDias').value || 7, ppf = +document.getElementById('aPpf').value || 2, nc = +document.getElementById('aCanchas').value || 1, mm = +document.getElementById('aMin').value || 90, fase = document.getElementById('aFase').value;
       if (!f0 || !h0) { er.textContent = 'Poné la primera fecha y la hora.'; return; }
@@ -990,6 +1036,26 @@
       confirmar('¿Descartar lo que mandó <b>' + esc(g.club) + '</b>?', 'Descartar', async function () {
         try { okr(await SB().rpc('identidades_resolver', { p_liga: ligaId(), p_id: g.id, p_aplicar: false })); TL().toast('Descartado.'); ST.rec = null; TL().pintar(true); } catch (e) { TL().toast(msgError(e)); }
       });
+    },
+    zCrear: async function (b) {
+      var nom = document.getElementById('zNueva').value.trim(), er = document.getElementById('zErr'), cat = b.dataset.cat;
+      if (!nom) { er.textContent = 'Poné el nombre de la zona.'; return; }
+      if (zonas(cat).some(function (z) { return z.nombre.toLowerCase() === nom.toLowerCase(); })) { er.textContent = 'Ya existe una zona con ese nombre.'; return; }
+      okr(await SB().from('zonas').insert({ categoria_id: cat, nombre: nom, orden: zonas(cat).length + 1 })); TL().toast('Zona creada.'); await refrescarReal();
+    },
+    zGuardar: async function (b) {
+      var nom = document.getElementById('zn-' + b.dataset.id).value.trim(); if (!nom) { TL().toast('Poné el nombre de la zona.'); return; }
+      okr(await SB().from('zonas').update({ nombre: nom }).eq('id', b.dataset.id)); TL().toast('Zona guardada.'); await refrescarReal();
+    },
+    zBorrar: async function (b) {
+      var z = (D.vista_zonas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!z) return;
+      confirmar('¿Borrar <b>' + esc(z.nombre) + '</b>? Sus equipos quedan sin zona (no se borra ningún equipo).', 'Borrar', async function () {
+        try { okr(await SB().from('zonas').delete().eq('id', z.id)); TL().toast('Zona borrada.'); await refrescarReal(); } catch (e) { TL().toast(msgError(e)); }
+      });
+    },
+    zEquipo: async function (b) {
+      var id = b.dataset.id, zid = document.getElementById('ze-' + id).value || null, cl = document.getElementById('zc-' + id).value.trim() || null, o = document.getElementById('zo-' + id).value;
+      okr(await SB().from('equipos').update({ zona_id: zid, clasificacion: cl, orden_manual: o === '' ? null : +o }).eq('id', id)); TL().toast('Equipo guardado.'); await refrescarReal();
     },
     toggleCat: async function (b) {
       var jid = b.dataset.jug, eq = b.dataset.eq, on = b.classList.contains('on');
@@ -1137,7 +1203,7 @@
       });
     },
     armar: function () {
-      var cat = gcat(), eq = equipos(cat), e = document.getElementById('aErr');
+      var cat = gcat(), zsel = (document.getElementById('aZona') || {}).value || '', eq = equipos(cat).filter(function (x) { return !zsel || x.zona_id === zsel; }), e = document.getElementById('aErr');
       if (eq.length < 2) { e.textContent = 'Hacen falta al menos 2 equipos.'; return; }
       var f0 = document.getElementById('aFecha').value, h0 = document.getElementById('aHora').value, dias = +document.getElementById('aDias').value || 7, ppf = +document.getElementById('aPpf').value || 2, nc = +document.getElementById('aCanchas').value || 1, mm = +document.getElementById('aMin').value || 90, fase = document.getElementById('aFase').value;
       if (!f0 || !h0) { e.textContent = 'Poné la primera fecha y la hora.'; return; }
@@ -1269,6 +1335,28 @@
     idDescartar: function (b) {
       var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
       confirmar('¿Descartar lo que mandó <b>' + esc(g.club) + '</b>?', 'Descartar', function () { ST.rec.splice(+b.dataset.i, 1); TL().toast('Descartado.'); TL().pintar(true); });
+    },
+    zCrear: function (b) {
+      var nom = document.getElementById('zNueva').value.trim(), er = document.getElementById('zErr'), cat = b.dataset.cat;
+      if (!nom) { er.textContent = 'Poné el nombre de la zona.'; return; }
+      if (zonas(cat).some(function (z) { return z.nombre.toLowerCase() === nom.toLowerCase(); })) { er.textContent = 'Ya existe una zona con ese nombre.'; return; }
+      D.vista_zonas = D.vista_zonas || []; D.vista_zonas.push({ id: uid(), categoria_id: cat, nombre: nom, orden: zonas(cat).length + 1 });
+      drive('BASE › Zonas', 'zona creada: ' + nom); TL().toast('Zona creada.'); TL().recargar();
+    },
+    zGuardar: function (b) {
+      var nom = document.getElementById('zn-' + b.dataset.id).value.trim(); if (!nom) { TL().toast('Poné el nombre de la zona.'); return; }
+      (D.vista_zonas || []).forEach(function (z) { if (z.id === b.dataset.id) z.nombre = nom; }); TL().toast('Zona guardada.'); TL().recargar();
+    },
+    zBorrar: function (b) {
+      var z = (D.vista_zonas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!z) return;
+      confirmar('¿Borrar <b>' + esc(z.nombre) + '</b>? Sus equipos quedan sin zona (no se borra ningún equipo).', 'Borrar', function () {
+        D.vista_zonas.splice(D.vista_zonas.indexOf(z), 1); D.vista_equipos.forEach(function (e) { if (e.zona_id === z.id) e.zona_id = null; }); TL().toast('Zona borrada.'); TL().recargar();
+      });
+    },
+    zEquipo: function (b) {
+      var id = b.dataset.id, e = equipo(id), o = document.getElementById('zo-' + id).value; if (!e) return;
+      e.zona_id = document.getElementById('ze-' + id).value || null; e.clasificacion = document.getElementById('zc-' + id).value.trim() || null; e.orden_manual = o === '' ? null : +o;
+      drive('BASE › Equipos', 'zona y clasificación de ' + e.nombre); TL().toast('Equipo guardado.'); TL().recargar();
     },
     jcat: function (b) { b.classList.toggle('on'); },
     gjug: function (b) {

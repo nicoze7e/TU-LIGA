@@ -55,7 +55,7 @@
     return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function () { rej(new Error('No pude cargar ' + src)); }; document.head.appendChild(s); });
   }
 
-  function vaciarLiga() { S.cats = []; S.vivoCats = {}; S.catId = ''; S.eq = {}; S.jug = {}; S.partidos = []; S.tabla = []; S.statsJ = []; S.statsE = []; S.cargado = false; LV.evs = {}; PJ = {}; SELLOG = {}; }
+  function vaciarLiga() { S.cats = []; S.vivoCats = {}; S.catId = ''; S.eq = {}; S.jug = {}; S.partidos = []; S.tabla = []; S.statsJ = []; S.statsE = []; S.zonas = []; S.cargado = false; LV.evs = {}; PJ = {}; SELLOG = {}; }
   function cargar() {
     sel('vista_partidos', { liga_id: S.liga.id, estado: 'en_vivo' }).then(function (v) { S.vivoCats = {}; v.forEach(function (p) { S.vivoCats[p.categoria_id] = (S.vivoCats[p.categoria_id] || 0) + 1; }); }, function () { S.vivoCats = {}; });
     return sel('vista_categorias', { liga_slug: S.liga.slug }).then(function (cats) {
@@ -68,10 +68,10 @@
   }
   function cargarCategoria() {
     var f = { categoria_id: S.catId };
-    return Promise.all([sel('vista_equipos', f), sel('vista_jugadores', f), sel('vista_partidos', f, 'fecha_hora'), sel('vista_tabla', f, 'posicion'), sel('vista_stats_jugador', f), sel('vista_stats_equipo', f)]).then(function (r) {
+    return Promise.all([sel('vista_equipos', f), sel('vista_jugadores', f), sel('vista_partidos', f, 'fecha_hora'), sel('vista_tabla', f, 'posicion'), sel('vista_stats_jugador', f), sel('vista_stats_equipo', f), sel('vista_zonas', f, 'orden').catch(function () { return []; })]).then(function (r) {
       S.eq = {}; r[0].forEach(function (e) { S.eq[e.id] = e; });
       S.jug = {}; r[1].forEach(function (j) { S.jug[j.id] = j; });
-      S.partidos = r[2]; S.tabla = r[3]; S.statsJ = r[4]; S.statsE = r[5]; S.cargado = true;
+      S.partidos = r[2]; S.tabla = r[3]; S.statsJ = r[4]; S.statsE = r[5]; S.zonas = r[6] || []; S.cargado = true;
     });
   }
   function recargarPartidos() { return sel('vista_partidos', { categoria_id: S.catId }, 'fecha_hora').then(function (p) { S.partidos = p; return sel('vista_tabla', { categoria_id: S.catId }, 'posicion'); }).then(function (t) { S.tabla = t; }); }
@@ -118,7 +118,7 @@
       case 'AST': return 'Asistencia · ' + n;
       case 'ROB': return 'Robo · ' + n;
       case 'PER': return 'Pérdida · ' + n;
-      case 'FALTA': return '🟨 Falta' + (e.detalle ? ' ' + e.detalle : '') + ' · ' + n;
+      case 'FALTA': return (e.detalle === 'entrenador' || e.detalle === 'banco') ? '🟨 Falta técnica al ' + e.detalle : '🟨 Falta' + (e.detalle ? ' ' + e.detalle : '') + ' · ' + n;
       case 'TM': return '⏸ Tiempo muerto · ' + eq;
       case 'CAMBIO': return '🔁 Cambio · sale ' + (j ? j.nombre : '') + ', entra ' + (j2 ? j2.nombre : '');
       case 'CUARTO_INICIO': return '▶ Comienza el ' + cuartoTxt(e.cuarto);
@@ -206,13 +206,33 @@
     if (ult.length) h += '<h2>Últimos resultados</h2><div class="cols">' + ult.map(tarjetaPartido).join('') + '</div>';
     return h;
   }
-  function vTabla() {
-    var h = '<h1>Tabla de posiciones</h1><div class="scroll"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>P</th><th>PF</th><th>PC</th><th>Dif</th><th>Pts</th></tr></thead><tbody>';
-    S.tabla.forEach(function (t) {
-      h += '<tr><td class="pos">' + t.posicion + '</td><td class="nom"><a href="#/equipo/' + t.equipo_id + '">' + mark(t.equipo_id, t.color_principal) + esc(t.equipo_nombre) + '</a></td><td>' + t.pj + '</td><td>' + t.pg + '</td><td>' + t.pp + '</td><td>' + t.pf + '</td><td>' + t.pc + '</td><td>' + (t.dif > 0 ? '+' : '') + t.dif + '</td><td><b>' + t.pts + '</b></td></tr>';
+  function posiciones(rows) {                          // posiciones dentro de una tabla: puntos, después el desempate del coordinador, después diferencia (igual que la base)
+    var o = rows.slice().sort(function (a, b) { return (b.pts - a.pts) || ((a.orden_manual || 999) - (b.orden_manual || 999)) || (b.dif - a.dif) || (b.pf - a.pf); }), pos = 0, ant = null;
+    o.forEach(function (t, i) { var k = [t.pts, t.orden_manual || 999, t.dif, t.pf].join('|'); if (k !== ant) pos = i + 1; ant = k; t._pos = pos; });
+    return o;
+  }
+  function tablaHtml(rows) {
+    var h = '<div class="scroll"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>P</th><th>PF</th><th>PC</th><th>Dif</th><th>Pts</th></tr></thead><tbody>';
+    posiciones(rows).forEach(function (t) {
+      var cl = (S.eq[t.equipo_id] || {}).clasificacion || t.clasificacion || '';
+      h += '<tr><td class="pos">' + t._pos + '</td><td class="nom"><a href="#/equipo/' + t.equipo_id + '">' + mark(t.equipo_id, t.color_principal) + esc(t.equipo_nombre) + '</a>' + (cl ? '<br><span class="pill ok" style="font-size:11px">' + esc(cl) + '</span>' : '') + '</td><td>' + t.pj + '</td><td>' + t.pg + '</td><td>' + t.pp + '</td><td>' + t.pf + '</td><td>' + t.pc + '</td><td>' + (t.dif > 0 ? '+' : '') + t.dif + '</td><td><b>' + t.pts + '</b></td></tr>';
     });
-    h += '</tbody></table></div><p class="sm muted">PJ: jugados · G: ganados · P: perdidos · PF/PC: puntos a favor/en contra · Dif: diferencia.</p>' +
-      '<div class="fila-btns"><button class="btn" data-share="tabla" type="button">⤴ Compartir la tabla</button></div>';
+    return h + '</tbody></table></div>';
+  }
+  function vTabla() {
+    var zs = S.zonas || [], porZona = {}, sin = [];
+    S.tabla.forEach(function (t) { var z = (S.eq[t.equipo_id] || {}).zona_id || t.zona_id; if (z) (porZona[z] = porZona[z] || []).push(t); else sin.push(t); });
+    var h = '<h1>Tabla de posiciones</h1>';
+    if (!zs.length) h += tablaHtml(S.tabla);
+    else {
+      zs.forEach(function (z) { if (porZona[z.id]) h += '<h2>' + esc(z.nombre) + '</h2>' + tablaHtml(porZona[z.id]); });
+      if (sin.length) h += '<h2>Sin zona</h2>' + tablaHtml(sin);
+    }
+    h += '<p class="sm muted">PJ: jugados · G: ganados · P: perdidos · PF/PC: puntos a favor/en contra · Dif: diferencia. Cuenta la fase regular. La clasificación y el desempate los define la coordinación.</p>';
+    var po = S.partidos.filter(function (p) { var f = String(p.fase || '').trim().toLowerCase(); return f && f !== 'fase regular' && f !== 'regular'; }), grupos = {}, orden = [];
+    po.forEach(function (p) { if (!grupos[p.fase]) { grupos[p.fase] = []; orden.push(p.fase); } grupos[p.fase].push(p); });
+    if (orden.length) h += '<h2>🏆 Playoffs</h2>' + orden.map(function (f) { return '<h3 style="margin:12px 0 6px">' + esc(f) + '</h3><div class="cols">' + grupos[f].map(tarjetaPartido).join('') + '</div>'; }).join('');
+    h += '<div class="fila-btns"><button class="btn" data-share="tabla" type="button">⤴ Compartir la tabla</button></div>';
     return h;
   }
   /* ---------- categorías: barra de selección para cualquier usuario ---------- */
