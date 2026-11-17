@@ -44,6 +44,16 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
 .ok{text-align:center;padding:30px 10px}
 .ok .gr{font-size:56px}
 .nota{font-size:13px;color:var(--muted)}
+.sw{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.sw button{width:40px;height:40px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.sw button[aria-pressed=true]{outline:3px solid var(--acc);outline-offset:2px}
+.sw label.otro{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:13px}
+.sw input[type=color]{width:40px;height:40px;padding:0;border:2px solid var(--line);border-radius:50%;background:none;cursor:pointer}
+.esc{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.esc .vista{width:84px;height:84px;border-radius:18px;border:1px dashed var(--line);background:var(--panel2);display:grid;place-items:center;overflow:hidden;font-size:34px}
+.esc .vista img{width:100%;height:100%;object-fit:contain}
+.prev{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px;border-radius:12px;background:var(--panel2)}
+.prev b{font:700 18px var(--fd)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 [hidden]{display:none!important}
 </style>
@@ -68,7 +78,23 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     </div>
 
     <div class="paso">
-      <h2><span class="num">2</span>Tus jugadores</h2>
+      <h2><span class="num">2</span>Escudo y colores <span class="nota" style="font-weight:400">(opcional)</span></h2>
+      <p class="ayuda">Así te vas a ver en la liga. Podés saltear este paso y completarlo después con la coordinación.</p>
+      <div class="esc">
+        <div class="vista" id="escVista">🛡️</div>
+        <div style="display:grid;gap:8px">
+          <label class="btn mini" style="display:inline-flex;align-items:center;margin:0;cursor:pointer;color:var(--ink)">📷 Subir escudo<input id="escFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+          <button class="btn mini" id="escQuitar" type="button" hidden>Quitar escudo</button>
+        </div>
+      </div>
+      <div class="err" id="escErr"></div>
+      <label>Color principal</label><div class="sw" id="swP"></div>
+      <label>Color secundario</label><div class="sw" id="swS"></div>
+      <div class="prev" id="prev" hidden><span id="prevEsc"></span><span><b id="prevNom"></b><br><span class="nota">Así se verá tu club</span></span></div>
+    </div>
+
+    <div class="paso">
+      <h2><span class="num">3</span>Tus jugadores</h2>
       <p class="ayuda">Un jugador una sola vez. En <b>categorías</b> marcá todas en las que juega: puede ser más de una.</p>
       <div id="lista"></div>
       <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
@@ -101,7 +127,8 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
   var CFG = window.LIGA_CONFIG || {};
   var SLUG = new URLSearchParams(location.search).get('liga') || CFG.ligaFija || 'mar-y-sierra';
   var BASE = (CFG.supabaseUrl || '').replace(/\/$/, '');
-  var D = { clubes: [], cats: [] }, J = [], enviando = false;
+  var D = { clubes: [], cats: [] }, J = [], enviando = false, IDENT = { cp: '', cs: '', esc: '' };
+  var PALETA = ['#d62828', '#f77f00', '#fcbf49', '#2e7d32', '#2a9d8f', '#1565c0', '#0b2a6f', '#6a1b9a', '#c2185b', '#6d4c41', '#ffffff', '#111111'];
   var $ = function (id) { return document.getElementById(id); };
   var NUEVO = '__nuevo__';
 
@@ -119,7 +146,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
   function jugadorVacio() { return { documento: '', apellido: '', nombre: '', nacimiento: '', camiseta: '', altura: '', categorias: [] }; }
 
   /* ---------- borrador (por si se cierra la pestaña): solo en este celular ---------- */
-  function guardarBorrador() { try { localStorage.setItem('tl_form_' + SLUG, JSON.stringify({ club: $('club').value, nuevo: $('clubNuevo').value, J: J })); } catch (e) { /* sin almacenamiento */ } }
+  function guardarBorrador() { try { localStorage.setItem('tl_form_' + SLUG, JSON.stringify({ club: $('club').value, nuevo: $('clubNuevo').value, J: J, ident: IDENT })); } catch (e) { /* sin almacenamiento */ } }
   function leerBorrador() { try { return JSON.parse(localStorage.getItem('tl_form_' + SLUG) || 'null'); } catch (e) { return null; } }
   function borrarBorrador() { try { localStorage.removeItem('tl_form_' + SLUG); } catch (e) { /* nada */ } }
 
@@ -154,6 +181,58 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     $('enviar').textContent = 'Enviar plantel (' + J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).length + ')';
   }
 
+  /* ---------- escudo y colores ---------- */
+  function pintarIdentidad() {
+    [['swP', 'cp'], ['swS', 'cs']].forEach(function (g) {
+      var box = $(g[0]); box.innerHTML = '';
+      PALETA.forEach(function (c) {
+        box.appendChild(el('button', { type: 'button', 'aria-label': c, 'aria-pressed': IDENT[g[1]] === c ? 'true' : 'false', style: 'background:' + c, on: { click: function () { IDENT[g[1]] = IDENT[g[1]] === c ? '' : c; guardarBorrador(); pintarIdentidad(); } } }));
+      });
+      var inp = el('input', { type: 'color', value: IDENT[g[1]] || '#1565c0', 'aria-label': 'Otro color' });
+      inp.addEventListener('input', function () { IDENT[g[1]] = inp.value; guardarBorrador(); pintarIdentidad(true); });
+      box.appendChild(el('label', { class: 'otro' }, [inp, el('span', { text: 'Otro' })]));
+    });
+    $('escVista').innerHTML = ''; if (IDENT.esc) $('escVista').appendChild(el('img', { src: IDENT.esc, alt: 'Escudo' })); else $('escVista').textContent = '🛡️';
+    $('escQuitar').hidden = !IDENT.esc;
+    var nom = $('club').value === NUEVO ? $('clubNuevo').value.trim() : $('club').value;
+    var hay = IDENT.cp || IDENT.cs || IDENT.esc; $('prev').hidden = !hay;
+    if (hay) {
+      $('prevNom').textContent = nom || 'Tu club';
+      $('prevEsc').innerHTML = '';
+      var ico = el('span', { style: 'display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;overflow:hidden;border:3px solid ' + (IDENT.cs || IDENT.cp || '#888') + ';background:' + (IDENT.cp || '#888') });
+      if (IDENT.esc) { ico.style.background = '#fff'; ico.appendChild(el('img', { src: IDENT.esc, alt: '', style: 'width:100%;height:100%;object-fit:contain' })); }
+      $('prevEsc').appendChild(ico);
+    }
+  }
+  // Achica el escudo en el celular (máx. 256 px) para que el envío sea liviano. Devuelve una promesa con la imagen (data:) o rechaza con el motivo.
+  function procesarImagen(src) {
+    return new Promise(function (ok, no) {
+      var im = new Image();
+      im.onload = function () {
+        var intentos = [[256, 'image/png', 0.92], [256, 'image/webp', 0.85], [192, 'image/webp', 0.8], [128, 'image/webp', 0.8]], out = '';
+        for (var i = 0; i < intentos.length; i++) {
+          var k = Math.min(1, intentos[i][0] / Math.max(im.width, im.height)), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+          c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+          out = c.toDataURL(intentos[i][1], intentos[i][2]);
+          if (out.length <= 110000 && /^data:image\/(png|jpeg|webp);base64,/.test(out)) return ok(out);
+        }
+        no('La imagen es muy pesada. Probá con otra más simple.');
+      };
+      im.onerror = function () { no('No pude leer esa imagen. Probá con un PNG o JPG.'); };
+      im.src = src;
+    });
+  }
+  function cargarEscudo(file) {
+    $('escErr').textContent = '';
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { $('escErr').textContent = 'El escudo tiene que ser PNG, JPG o WEBP.'; return; }
+    if (file.size > 8 * 1024 * 1024) { $('escErr').textContent = 'La imagen es demasiado grande (máximo 8 MB).'; return; }
+    var rd = new FileReader();
+    rd.onload = function () { procesarImagen(rd.result).then(function (d) { IDENT.esc = d; guardarBorrador(); pintarIdentidad(); }, function (m) { $('escErr').textContent = m; }); };
+    rd.readAsDataURL(file);
+  }
+
   /* ---------- validar y enviar ---------- */
   function limpiarDni(s) { return String(s || '').replace(/[^0-9]/g, ''); }
   function validar() {
@@ -185,10 +264,10 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
       return { documento: limpiarDni(j.documento), apellido: j.apellido.trim(), nombre: j.nombre.trim(), nacimiento: j.nacimiento, camiseta: j.camiseta || null, altura: j.altura || null, categorias: j.categorias };
     });
     enviando = true; $('enviar').disabled = true; $('enviar').textContent = 'Enviando…';
-    rpc('form_enviar', { p_slug: SLUG, p_club: v.club, p_nuevo: $('club').value === NUEVO, p_jugadores: filas }).then(function (r) {
+    rpc('form_enviar', { p_slug: SLUG, p_club: v.club, p_nuevo: $('club').value === NUEVO, p_jugadores: filas, p_identidad: (IDENT.cp || IDENT.cs || IDENT.esc) ? { color_principal: IDENT.cp || null, color_secundario: IDENT.cs || null, escudo: IDENT.esc || null } : null }).then(function (r) {
       enviando = false; $('enviar').disabled = false;
       if (!r || !r.ok) { $('error').textContent = (r && r.error) || 'No se pudo enviar. Probá de nuevo.'; pintar(); return; }
-      borrarBorrador(); mostrarListo(r.recibidos, r.club);
+      borrarBorrador(); IDENT = { cp: '', cs: '', esc: '' }; mostrarListo(r.recibidos, r.club);
     }).catch(function (e) { enviando = false; $('enviar').disabled = false; $('error').textContent = 'No se pudo enviar (' + e.message + '). Tu lista sigue acá: probá de nuevo.'; pintar(); });
   }
   function mostrarListo(n, club) {
@@ -225,7 +304,7 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
 
   /* ---------- arranque ---------- */
   function cambiarClub() {
-    var nuevo = $('club').value === NUEVO; $('nuevoClub').hidden = !nuevo;
+    var nuevo = $('club').value === NUEVO; $('nuevoClub').hidden = !nuevo; try { pintarIdentidad(); } catch (e) { /* aún no está todo listo */ }
     var pro = catsDelClub();
     if (pro.length === 1) J.forEach(function (j) { if (!j.categorias.length) j.categorias = [pro[0]]; });
     guardarBorrador(); pintar();
@@ -238,24 +317,26 @@ textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--l
     D.clubes.forEach(function (c) { s.appendChild(el('option', { value: c.club, text: c.club })); });
     s.appendChild(el('option', { value: NUEVO, text: '➕ Mi club no está en la lista' }));
     J = [jugadorVacio()];
-    if (borrador && borrador.J && borrador.J.length) { J = borrador.J; s.value = borrador.club || ''; if (s.value !== (borrador.club || '')) s.value = ''; $('clubNuevo').value = borrador.nuevo || ''; }
-    $('cargando').hidden = true; $('form').hidden = false; $('barra').hidden = false; cambiarClub();
+    if (borrador && borrador.J && borrador.J.length) { J = borrador.J; s.value = borrador.club || ''; if (s.value !== (borrador.club || '')) s.value = ''; $('clubNuevo').value = borrador.nuevo || ''; if (borrador.ident) IDENT = { cp: borrador.ident.cp || '', cs: borrador.ident.cs || '', esc: borrador.ident.esc || '' }; }
+    $('cargando').hidden = true; $('form').hidden = false; $('barra').hidden = false; cambiarClub(); pintarIdentidad();
   }
   $('club').addEventListener('change', cambiarClub);
-  $('clubNuevo').addEventListener('input', guardarBorrador);
+  $('clubNuevo').addEventListener('input', function () { guardarBorrador(); pintarIdentidad(); });
+  $('escFile').addEventListener('change', function () { cargarEscudo(this.files && this.files[0]); this.value = ''; });
+  $('escQuitar').addEventListener('click', function () { IDENT.esc = ''; guardarBorrador(); pintarIdentidad(); });
   $('agregar').addEventListener('click', function () { J.push(jugadorVacio()); var pro = catsDelClub(); if (pro.length === 1) J[J.length - 1].categorias = [pro[0]]; guardarBorrador(); pintar(); var c = $('lista').lastChild; if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   $('verPegar').addEventListener('click', function () { $('cajaPegar').hidden = !$('cajaPegar').hidden; });
   $('cerrarPegar').addEventListener('click', function () { $('cajaPegar').hidden = true; });
   $('usarPegado').addEventListener('click', usarPegado);
   $('enviar').addEventListener('click', enviar);
-  $('otro').addEventListener('click', function () { $('listo').hidden = true; $('form').hidden = false; $('barra').hidden = false; J = [jugadorVacio()]; $('club').value = ''; $('clubNuevo').value = ''; cambiarClub(); });
+  $('otro').addEventListener('click', function () { IDENT = { cp: '', cs: '', esc: '' }; $('listo').hidden = true; $('form').hidden = false; $('barra').hidden = false; J = [jugadorVacio()]; $('club').value = ''; $('clubNuevo').value = ''; cambiarClub(); });
 
   if (!BASE || !CFG.supabaseKey) { $('cargando').innerHTML = '<p class="err">Este formulario todavía no está conectado a la liga.</p>'; return; }
   rpc('form_clubes', { p_slug: SLUG }).then(function (info) {
     if (!info || !info.liga) throw new Error('No encontré la liga.');
     iniciar(info, leerBorrador());
   }).catch(function (e) { $('cargando').innerHTML = '<p class="err">No pude cargar los clubes (' + e.message + '). Recargá la página.</p>'; });
-  window.__TL_FORM = { validar: validar, enviar: enviar, usarPegado: usarPegado, estado: function () { return J; } };
+  window.__TL_FORM = { validar: validar, enviar: enviar, usarPegado: usarPegado, estado: function () { return J; }, procesarImagen: procesarImagen, identidad: function () { return IDENT; } };
 })();
 </script>
 </body>

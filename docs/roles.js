@@ -649,13 +649,20 @@
   function fechaCorta(iso) { return String(iso || '').slice(0, 10).split('-').reverse().join('/'); }
   function muestraRecibidos() {                       // en la demo se muestra un envío de ejemplo para ver cómo funciona
     var cn = cats().map(function (c) { return c.nombre; }), c1 = cn[0], c2 = cn[1] || cn[0];
-    return [{ club: 'Club Ejemplo', club_nuevo: true, enviado: new Date().toISOString(), jugadores: [
+    return [{ club: 'Club Ejemplo', club_nuevo: true, enviado: new Date().toISOString(), identidad: { color_principal: '#1565c0', color_secundario: '#fcbf49', escudo: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 4 8 12v20c0 14 10 24 24 28 14-4 24-14 24-28V12z" fill="#1565c0" stroke="#fcbf49" stroke-width="4"/><text x="32" y="40" font-size="26" font-weight="700" text-anchor="middle" fill="#fff" font-family="Arial">CE</text></svg>') }, jugadores: [
       { ids: ['d1'], documento: '31000111', apellido: 'Pérez', nombre: 'Martín', nacimiento: '1991-03-12', camiseta: 7, altura: 181, categorias: c1 === c2 ? [c1] : [c1, c2], ya_existe: false },
       { ids: ['d2'], documento: '32000222', apellido: 'Suárez', nombre: 'Lucas', nacimiento: '1989-11-02', camiseta: null, categorias: [c1], ya_existe: false }] }];
   }
   function cargarRecibidos() {
     if (!REAL) { if (!ST.rec) ST.rec = muestraRecibidos(); return Promise.resolve(); }
     return SB().rpc('recibidos_listar', { p_liga: ligaId() }).then(function (r) { if (r.error) throw r.error; ST.rec = r.data || []; ST.recErr = null; }).catch(function (e) { ST.rec = []; ST.recErr = msgError(e); });
+  }
+  function identidadHtml(it) {                        // escudo y colores que mandó el club (si los mandó)
+    if (!it || !(it.escudo || it.color_principal || it.color_secundario)) return '';
+    var dot = function (c) { return c ? '<span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);vertical-align:middle;background:' + esc(c) + '"></span>' : ''; };
+    return '<div class="card" style="margin:8px 0"><div class="fila" style="justify-content:flex-start;gap:12px">' +
+      (it.escudo ? '<img src="' + esc(it.escudo) + '" alt="Escudo" style="width:52px;height:52px;object-fit:contain;border-radius:10px;background:#fff">' : '<span style="font-size:30px">🛡️</span>') +
+      '<span><b>🎨 Identidad enviada</b><br>' + dot(it.color_principal) + ' ' + dot(it.color_secundario) + ' <span class="sm muted">Al aprobar se aplica a todas las categorías del club.</span></span></div></div>';
   }
   function vGRecibidos() {
     if (!ST.rec) { cargarRecibidos().then(function () { TL().pintar(true); }); return '<h1>Recibidos</h1><div class="sk"><i></i><i></i></div>'; }
@@ -672,7 +679,7 @@
           '<div class="chips" style="padding:8px 0 0;margin:0">' + x.categorias.map(function (c) { return '<span class="chip on" style="height:30px;font-size:12.5px;pointer-events:none">' + esc(c) + '</span>'; }).join('') + '</div>' + aviso + '</div>';
       }).join('');
       return '<div class="pw" style="margin-top:14px"><div class="fila"><h2 style="margin:0">' + esc(g.club) + '</h2><span class="pill' + (g.club_nuevo ? '' : ' ok') + '">' + (g.club_nuevo ? '🆕 Club nuevo' : 'Club de la liga') + '</span></div>' +
-        '<div class="sm muted">Enviado el ' + esc(fechaCorta(g.enviado)) + ' · ' + g.jugadores.length + ' jugadores · espera tu confirmación</div>' + filas +
+        '<div class="sm muted">Enviado el ' + esc(fechaCorta(g.enviado)) + ' · ' + g.jugadores.length + ' jugadores · espera tu confirmación</div>' + identidadHtml(g.identidad) + filas +
         '<div class="grid2" style="margin-top:10px"><button class="btn p" data-a="recAprobar" data-i="' + i + '" type="button">✅ Aprobar club</button><button class="btn mal" data-a="recRechazar" data-i="' + i + '" type="button">Rechazar</button></div></div>';
     }).join('');
   }
@@ -952,7 +959,18 @@
     recAprobar: async function (b) {
       var g = ST.rec && ST.rec[+b.dataset.i]; if (!g) return;
       confirmar('¿Aprobar a <b>' + esc(g.club) + '</b> con ' + g.jugadores.length + ' jugadores? Entran a la liga y, en unos minutos, a la hoja de Drive.', 'Aprobar', async function () {
-        try { var r = okr(await SB().rpc('recibidos_resolver', { p_liga: ligaId(), p_ids: idsDe(g), p_aprobar: true })); TL().toast('Aprobado ✅ ' + r.jugadores_nuevos + ' jugadores nuevos' + (r.equipos_nuevos ? ' · ' + r.equipos_nuevos + ' equipo(s) creados' : '') + '.'); ST.rec = null; await refrescarReal(); } catch (e) { TL().toast(msgError(e)); }
+        try { var r = okr(await SB().rpc('recibidos_resolver', { p_liga: ligaId(), p_ids: idsDe(g), p_aprobar: true })); TL().toast('Aprobado ✅ ' + r.jugadores_nuevos + ' jugadores nuevos' + (r.equipos_nuevos ? ' · ' + r.equipos_nuevos + ' equipo(s) creados' : '') + '.'); ST.rec = null; await refrescarReal();
+          if (r.escudos && r.escudos.length) {            // el escudo que mandó el club pasa a ser el logo de todos sus equipos
+            try {
+              for (var k = 0; k < r.escudos.length; k++) {
+                var cb = club(kClub(r.escudos[k].club)); if (!cb) continue;
+                var url = await subirLogo(r.escudos[k].escudo, ligaId() + '/equipos/' + cb.equipos[0].id + '.png');
+                for (var m = 0; m < cb.equipos.length; m++) okr(await SB().from('equipos').update({ logo_url: url }).eq('id', cb.equipos[m].id));
+              }
+              await refrescarReal();
+            } catch (e2) { TL().toast('Aprobado, pero no pude subir el escudo: ' + msgError(e2) + ' Subilo desde la ficha del club.'); }
+          }
+        } catch (e) { TL().toast(msgError(e)); }
       });
     },
     recRechazar: async function (b) {
@@ -1248,6 +1266,7 @@
           });
           PRIV[jid] = PRIV[jid] || { doc: x.documento, nac: x.nacimiento, hab: 'si' }; n++;
         });
+        if (g.identidad) D.vista_equipos.forEach(function (e) { if (kClub(e.nombre) === kClub(g.club)) { if (g.identidad.color_principal) e.color_principal = g.identidad.color_principal; if (g.identidad.color_secundario) e.color_alternativo = g.identidad.color_secundario; if (g.identidad.escudo) e.logo_url = g.identidad.escudo; } });
         ST.rec.splice(+b.dataset.i, 1); drive('BASE › Jugadores', n + ' jugadores aprobados de ' + g.club); TL().toast('Aprobado ✅ ' + n + ' jugadores.'); TL().recargar();
       });
     },
