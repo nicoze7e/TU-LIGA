@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TU LIGA · Plantel de tu club</title>
+<meta name="theme-color" content="#0f141a">
+<meta name="robots" content="noindex">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#0f141a;--panel:#19212a;--panel2:#232c36;--ink:#e9edf1;--muted:#98a5b2;--line:#2c3743;--acc:#ff8a4c;--ok:#37c978;--bad:#ff5c6c;--f:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fd:"Barlow Condensed","Arial Narrow",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--f);padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header img{width:34px;height:34px}
+header b{font:700 20px var(--fd);letter-spacing:.02em;display:block}
+header small{color:var(--muted);font-size:13px}
+main{max-width:720px;margin:0 auto;padding:16px}
+h2{font:700 22px var(--fd);margin:0 0 6px}
+p.ayuda{color:var(--muted);margin:0 0 14px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:0 12px;font:inherit}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:1px}
+textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:10px 12px;font:14px/1.4 ui-monospace,Menlo,monospace}
+.paso{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--acc);color:#1c0f07;font:700 15px var(--fd);margin-right:8px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px}
+.card.mal{border-color:var(--bad)}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fila3{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.cab{display:flex;justify-content:space-between;align-items:center}
+.cab b{font:700 17px var(--fd);color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:9px 16px;font:600 15px var(--f);cursor:pointer;min-height:42px}
+.chip[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1c0f07}
+.btn{border:0;border-radius:12px;padding:0 18px;height:46px;font:700 16px var(--f);cursor:pointer;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.btn.pri{background:var(--acc);color:#1c0f07;border-color:var(--acc)}
+.btn.mini{height:36px;padding:0 12px;font-size:14px}
+.btn[disabled]{opacity:.5}
+.barra{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;justify-content:center;z-index:6}
+.barra .btn.pri{flex:1;max-width:520px}
+.err{color:var(--bad);font-size:14px;margin-top:8px;white-space:pre-line}
+.ok{text-align:center;padding:30px 10px}
+.ok .gr{font-size:56px}
+.nota{font-size:13px;color:var(--muted)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><img src="logo.svg" alt=""><div><b id="tit">TU LIGA</b><small id="sub">Plantel de tu club</small></div></header>
+<main id="app">
+  <div id="cargando" class="paso"><p class="ayuda" style="margin:0">Cargando clubes…</p></div>
+
+  <div id="form" hidden>
+    <div class="paso">
+      <h2><span class="num">1</span>Tu club</h2>
+      <label for="club">Elegí tu club</label>
+      <select id="club"></select>
+      <div id="nuevoClub" hidden>
+        <label for="clubNuevo">Nombre de tu club</label>
+        <input id="clubNuevo" maxlength="80" autocomplete="off" placeholder="Ej.: Club Atlético Mar del Plata">
+        <p class="nota" id="nuevoNota">Si tu club no estaba en la lista, la liga lo da de alta al revisar tu envío.</p>
+      </div>
+      <input class="hp" id="web" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+
+    <div class="paso">
+      <h2><span class="num">2</span>Tus jugadores</h2>
+      <p class="ayuda">Un jugador una sola vez. En <b>categorías</b> marcá todas en las que juega: puede ser más de una.</p>
+      <div id="lista"></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn pri" id="agregar" type="button">+ Agregar jugador</button>
+        <button class="btn" id="verPegar" type="button">📋 Pegar desde Excel</button>
+      </div>
+      <div id="cajaPegar" hidden style="margin-top:12px">
+        <p class="nota">Pegá las filas con estas columnas, en este orden: <b>DNI · Apellido · Nombre · Nacimiento (dd/mm/aaaa) · Camiseta (opcional) · Categorías (separadas por coma)</b>.</p>
+        <textarea id="pegado" placeholder="30111222	Gómez	Leo	05/06/1992	9	+20, +30"></textarea>
+        <div style="display:flex;gap:10px;margin-top:8px"><button class="btn pri mini" id="usarPegado" type="button">Cargar filas</button><button class="btn mini" id="cerrarPegar" type="button">Cerrar</button></div>
+        <div class="err" id="errPegar"></div>
+      </div>
+    </div>
+    <div class="err" id="error"></div>
+  </div>
+
+  <div id="listo" class="paso ok" hidden>
+    <div class="gr">✅</div>
+    <h2>¡Recibido!</h2>
+    <p id="listoTxt" class="ayuda"></p>
+    <p class="nota">La coordinación de la liga revisa lo que mandaste antes de sumarlo. No hace falta que hagas nada más.</p>
+    <button class="btn pri" id="otro" type="button">Cargar otro club</button>
+  </div>
+</main>
+<div class="barra" id="barra" hidden><button class="btn pri" id="enviar" type="button">Enviar plantel</button></div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var CFG = window.LIGA_CONFIG || {};
+  var SLUG = new URLSearchParams(location.search).get('liga') || CFG.ligaFija || 'mar-y-sierra';
+  var BASE = (CFG.supabaseUrl || '').replace(/\/$/, '');
+  var D = { clubes: [], cats: [] }, J = [], enviando = false;
+  var $ = function (id) { return document.getElementById(id); };
+  var NUEVO = '__nuevo__';
+
+  function rpc(nombre, cuerpo) {
+    return fetch(BASE + '/rest/v1/rpc/' + nombre, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.supabaseKey }, body: JSON.stringify(cuerpo) })
+      .then(function (r) { return r.text().then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { j = null; } if (!r.ok) throw new Error((j && j.message) || 'No pude conectar con la liga.'); return j; }); });
+  }
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k === 'text') e.textContent = attrs[k]; else if (k === 'on') Object.keys(attrs.on).forEach(function (ev) { e.addEventListener(ev, attrs.on[ev]); }); else e.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { e.appendChild(c); });
+    return e;
+  }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function jugadorVacio() { return { documento: '', apellido: '', nombre: '', nacimiento: '', camiseta: '', categorias: [] }; }
+
+  /* ---------- borrador (por si se cierra la pestaña): solo en este celular ---------- */
+  function guardarBorrador() { try { localStorage.setItem('tl_form_' + SLUG, JSON.stringify({ club: $('club').value, nuevo: $('clubNuevo').value, J: J })); } catch (e) { /* sin almacenamiento */ } }
+  function leerBorrador() { try { return JSON.parse(localStorage.getItem('tl_form_' + SLUG) || 'null'); } catch (e) { return null; } }
+  function borrarBorrador() { try { localStorage.removeItem('tl_form_' + SLUG); } catch (e) { /* nada */ } }
+
+  function catsDelClub() {
+    var v = $('club').value; if (v === NUEVO || !v) return [];
+    var c = D.clubes.filter(function (x) { return norm(x.club) === norm(v); })[0]; return c ? c.categorias : [];
+  }
+  function ordenCats() { var p = catsDelClub(); return p.concat(D.cats.filter(function (c) { return p.indexOf(c) < 0; })); }
+
+  function pintar() {
+    var L = $('lista'); L.innerHTML = '';
+    var orden = ordenCats(), propias = catsDelClub();
+    J.forEach(function (j, i) {
+      var chips = el('div', { class: 'chips' }, orden.map(function (c) {
+        return el('button', { type: 'button', class: 'chip', 'aria-pressed': j.categorias.indexOf(c) >= 0 ? 'true' : 'false', text: c, on: { click: function () {
+          var k = j.categorias.indexOf(c); if (k >= 0) j.categorias.splice(k, 1); else j.categorias.push(c); guardarBorrador(); pintar(); } } });
+      }));
+      var campo = function (lbl, key, attrs) {
+        var inp = el('input', Object.assign({ value: j[key] || '', autocomplete: 'off' }, attrs || {}));
+        inp.addEventListener('input', function () { j[key] = inp.value; guardarBorrador(); });
+        return el('div', {}, [el('label', { text: lbl }), inp]);
+      };
+      L.appendChild(el('div', { class: 'card' + (j._mal ? ' mal' : ''), id: 'j' + i }, [
+        el('div', { class: 'cab' }, [el('b', { text: 'Jugador ' + (i + 1) }), el('button', { class: 'btn mini', type: 'button', text: 'Quitar', on: { click: function () { J.splice(i, 1); if (!J.length) J.push(jugadorVacio()); guardarBorrador(); pintar(); } } })]),
+        el('div', { class: 'fila2' }, [campo('Apellido', 'apellido', { maxlength: 60 }), campo('Nombre', 'nombre', { maxlength: 60 })]),
+        el('div', { class: 'fila3' }, [campo('DNI (solo números)', 'documento', { inputmode: 'numeric', maxlength: 11 }), campo('Camiseta (opcional)', 'camiseta', { inputmode: 'numeric', maxlength: 2 })]),
+        campo('Fecha de nacimiento', 'nacimiento', { type: 'date', min: '1930-01-01' }),
+        el('label', { text: 'Categorías en las que juega (una o varias)' }), chips,
+        propias.length ? el('p', { class: 'nota', text: 'Las de tu club van primero.' }) : el('span')
+      ]));
+    });
+    $('enviar').textContent = 'Enviar plantel (' + J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).length + ')';
+  }
+
+  /* ---------- validar y enviar ---------- */
+  function limpiarDni(s) { return String(s || '').replace(/[^0-9]/g, ''); }
+  function validar() {
+    var errores = [], dnis = {}, hay = 0;
+    var club = $('club').value === NUEVO ? $('clubNuevo').value.trim() : $('club').value;
+    if (!club || club.length < 2) errores.push('Elegí tu club (o escribí su nombre).');
+    J.forEach(function (j) { j._mal = false; });
+    J.forEach(function (j, i) {
+      var vacio = !j.documento && !j.apellido && !j.nombre && !j.nacimiento && !j.categorias.length; if (vacio) return;
+      hay++; var m = [], dni = limpiarDni(j.documento);
+      if (!/^\d{6,9}$/.test(dni)) m.push('el DNI debe tener entre 6 y 9 números');
+      else if (dnis[dni]) m.push('el DNI está repetido (jugador ' + dnis[dni] + ')'); else dnis[dni] = i + 1;
+      if (!j.apellido.trim() || !j.nombre.trim()) m.push('faltan apellido o nombre');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(j.nacimiento)) m.push('falta la fecha de nacimiento');
+      if (!j.categorias.length) m.push('elegí al menos una categoría');
+      if (j.camiseta && !/^\d{1,2}$/.test(j.camiseta)) m.push('la camiseta va de 0 a 99');
+      if (m.length) { j._mal = true; errores.push('Jugador ' + (i + 1) + ': ' + m.join(', ') + '.'); }
+    });
+    if (!hay) errores.push('Agregá al menos un jugador.');
+    return { errores: errores, club: club };
+  }
+  function enviar() {
+    if (enviando) return;
+    if ($('web').value) { mostrarListo(0, ''); return; }                 // trampa para robots
+    var v = validar(); $('error').textContent = v.errores.slice(0, 8).join('\n'); pintar();
+    if (v.errores.length) { var m = document.querySelector('.card.mal'); if (m) m.scrollIntoView({ behavior: 'smooth', block: 'center' }); else window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    var filas = J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).map(function (j) {
+      return { documento: limpiarDni(j.documento), apellido: j.apellido.trim(), nombre: j.nombre.trim(), nacimiento: j.nacimiento, camiseta: j.camiseta || null, categorias: j.categorias };
+    });
+    enviando = true; $('enviar').disabled = true; $('enviar').textContent = 'Enviando…';
+    rpc('form_enviar', { p_slug: SLUG, p_club: v.club, p_nuevo: $('club').value === NUEVO, p_jugadores: filas }).then(function (r) {
+      enviando = false; $('enviar').disabled = false;
+      if (!r || !r.ok) { $('error').textContent = (r && r.error) || 'No se pudo enviar. Probá de nuevo.'; pintar(); return; }
+      borrarBorrador(); mostrarListo(r.recibidos, r.club);
+    }).catch(function (e) { enviando = false; $('enviar').disabled = false; $('error').textContent = 'No se pudo enviar (' + e.message + '). Tu lista sigue acá: probá de nuevo.'; pintar(); });
+  }
+  function mostrarListo(n, club) {
+    $('form').hidden = true; $('barra').hidden = true; $('listo').hidden = false;
+    $('listoTxt').textContent = n ? ('Mandaste ' + n + ' jugador' + (n === 1 ? '' : 'es') + ' de ' + club + '.') : 'Gracias.';
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- pegar desde Excel ---------- */
+  function fechaIso(s) {
+    s = String(s || '').trim(); var m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) { var a = m[3].length === 2 ? (+m[3] > 30 ? '19' : '20') + m[3] : m[3]; return a + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); }
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+  }
+  function usarPegado() {
+    var tx = $('pegado').value.split(/\r?\n/).filter(function (l) { return l.trim(); }), nuevos = [], malas = [];
+    var permitidas = D.cats.map(norm);
+    tx.forEach(function (l, i) {
+      var c = l.split('\t').map(function (x) { return x.trim(); });
+      if (!/\d/.test(c[0] || '') && i === 0) return;                      // encabezado
+      var cams = '', cs = c[4] || '';
+      if (c.length >= 6) { cams = c[4]; cs = c[5]; } else if (c.length === 5 && !/^\d{0,2}$/.test(c[4])) { cams = ''; cs = c[4]; } else if (c.length === 5) { cams = c[4]; cs = ''; }
+      var cats = cs.split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { var k = permitidas.indexOf(norm(x)); return k >= 0 ? D.cats[k] : null; }).filter(Boolean);
+      if (!c[0]) { malas.push(i + 1); return; }
+      nuevos.push({ documento: c[0], apellido: c[1] || '', nombre: c[2] || '', nacimiento: fechaIso(c[3]), camiseta: /^\d{1,2}$/.test(cams) ? cams : '', categorias: cats.filter(function (x, k, a) { return a.indexOf(x) === k; }) });
+    });
+    if (!nuevos.length) { $('errPegar').textContent = 'No encontré filas para cargar.'; return; }
+    J = J.filter(function (j) { return j.documento || j.apellido || j.nombre; }).concat(nuevos);
+    $('pegado').value = ''; $('cajaPegar').hidden = true; $('errPegar').textContent = '';
+    guardarBorrador(); pintar();
+  }
+
+  /* ---------- arranque ---------- */
+  function cambiarClub() {
+    var nuevo = $('club').value === NUEVO; $('nuevoClub').hidden = !nuevo;
+    var pro = catsDelClub();
+    if (pro.length === 1) J.forEach(function (j) { if (!j.categorias.length) j.categorias = [pro[0]]; });
+    guardarBorrador(); pintar();
+  }
+  function iniciar(info, borrador) {
+    D.clubes = info.clubes || []; D.cats = info.categorias || [];
+    $('tit').textContent = info.liga || 'TU LIGA';
+    var s = $('club'); s.innerHTML = '';
+    s.appendChild(el('option', { value: '', text: 'Elegí tu club…' }));
+    D.clubes.forEach(function (c) { s.appendChild(el('option', { value: c.club, text: c.club })); });
+    s.appendChild(el('option', { value: NUEVO, text: '➕ Mi club no está en la lista' }));
+    J = [jugadorVacio()];
+    if (borrador && borrador.J && borrador.J.length) { J = borrador.J; s.value = borrador.club || ''; if (s.value !== (borrador.club || '')) s.value = ''; $('clubNuevo').value = borrador.nuevo || ''; }
+    $('cargando').hidden = true; $('form').hidden = false; $('barra').hidden = false; cambiarClub();
+  }
+  $('club').addEventListener('change', cambiarClub);
+  $('clubNuevo').addEventListener('input', guardarBorrador);
+  $('agregar').addEventListener('click', function () { J.push(jugadorVacio()); var pro = catsDelClub(); if (pro.length === 1) J[J.length - 1].categorias = [pro[0]]; guardarBorrador(); pintar(); var c = $('lista').lastChild; if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+  $('verPegar').addEventListener('click', function () { $('cajaPegar').hidden = !$('cajaPegar').hidden; });
+  $('cerrarPegar').addEventListener('click', function () { $('cajaPegar').hidden = true; });
+  $('usarPegado').addEventListener('click', usarPegado);
+  $('enviar').addEventListener('click', enviar);
+  $('otro').addEventListener('click', function () { $('listo').hidden = true; $('form').hidden = false; $('barra').hidden = false; J = [jugadorVacio()]; $('club').value = ''; $('clubNuevo').value = ''; cambiarClub(); });
+
+  if (!BASE || !CFG.supabaseKey) { $('cargando').innerHTML = '<p class="err">Este formulario todavía no está conectado a la liga.</p>'; return; }
+  rpc('form_clubes', { p_slug: SLUG }).then(function (info) {
+    if (!info || !info.liga) throw new Error('No encontré la liga.');
+    iniciar(info, leerBorrador());
+  }).catch(function (e) { $('cargando').innerHTML = '<p class="err">No pude cargar los clubes (' + e.message + '). Recargá la página.</p>'; });
+  window.__TL_FORM = { validar: validar, enviar: enviar, usarPegado: usarPegado, estado: function () { return J; } };
+})();
+</script>
+</body>
+</html>
