@@ -89,12 +89,13 @@
   function calc(evs, pj) {
     var anul = {}; evs.forEach(function (e) { if (e.tipo === 'ANULA' && e.anula) anul[e.anula] = true; });
     var v = evs.filter(function (e) { return e.tipo !== 'ANULA' && !anul[e.id]; }).sort(function (a, b) { return a.seq - b.seq; });
-    var jug = {}; (pj || []).forEach(function (x) { jug[x.jugador_id] = { id: x.jugador_id, nombre: x.nombre_completo, equipo_id: x.equipo_id, camiseta: x.camiseta, pts: 0, reb: 0, ast: 0, rob: 0, per: 0, faltas: 0, t3: 0 }; });
+    var jug = {}; (pj || []).forEach(function (x) { jug[x.jugador_id] = { id: x.jugador_id, nombre: x.nombre_completo, equipo_id: x.equipo_id, camiseta: x.camiseta, pts: 0, reb: 0, ast: 0, rob: 0, tap: 0, per: 0, faltas: 0, t3: 0 }; });
     var lado = { local: { pts: 0, faltas: {}, tm: 0 }, visitante: { pts: 0, faltas: {}, tm: 0 } };
     var parc = { local: {}, visitante: {} }, cuarto = 1;
     v.forEach(function (e) { if (e.cuarto) cuarto = Math.max(cuarto, e.cuarto); });
     v.forEach(function (e) {
       var pts = { P1: 1, P2: 2, P3: 3 }[e.tipo], j = jug[e.jugador_id], l = lado[e.equipo], q = e.cuarto || 1;
+      if (e.detalle === 'tapon' && jug[e.jugador2_id]) jug[e.jugador2_id].tap++;   // tapón: suma al que taponó (jugador2)
       if (pts && l) { l.pts += pts; parc[e.equipo][q] = (parc[e.equipo][q] || 0) + pts; if (j) { j.pts += pts; if (e.tipo === 'P3') j.t3++; } }
       else if (e.tipo === 'REB' && j) j.reb++;
       else if (e.tipo === 'AST' && j) j.ast++;
@@ -113,11 +114,11 @@
       case 'P1': return '🏀 Libre convertido · ' + n;
       case 'P2': return '🏀 Doble · ' + n;
       case 'P3': return '🎯 Triple · ' + n;
-      case 'E1': case 'E2': case 'E3': return 'Tiro errado · ' + n;
+      case 'E1': case 'E2': case 'E3': return e.detalle === 'tapon' ? '🖐️ Tapón de ' + (j2 ? '#' + j2.camiseta + ' ' + j2.nombre : '') + ' a ' + n : 'Tiro errado · ' + n;
       case 'REB': return 'Rebote · ' + n;
       case 'AST': return 'Asistencia · ' + n;
       case 'ROB': return 'Robo · ' + n;
-      case 'PER': return 'Pérdida · ' + n;
+      case 'PER': return e.detalle === 'equipo' ? 'Pérdida de equipo (24 s) · ' + eq : 'Pérdida · ' + n;
       case 'FALTA': return (e.detalle === 'entrenador' || e.detalle === 'banco') ? '🟨 Falta técnica al ' + e.detalle : '🟨 Falta' + (e.detalle ? ' ' + e.detalle : '') + ' · ' + n;
       case 'TM': return '⏸ Tiempo muerto · ' + eq;
       case 'CAMBIO': return '🔁 Cambio · sale ' + (j ? j.nombre : '') + ', entra ' + (j2 ? j2.nombre : '');
@@ -314,10 +315,10 @@
     return h;
   }
   function tablaBox(equipoId, c, titulo, color) {
-    var rows = Object.keys(c.jug).map(function (k) { return c.jug[k]; }).filter(function (j) { return j.equipo_id === equipoId && (j.pts || j.reb || j.ast || j.rob || j.per || j.faltas); }).sort(function (a, b) { return b.pts - a.pts; });
+    var rows = Object.keys(c.jug).map(function (k) { return c.jug[k]; }).filter(function (j) { return j.equipo_id === equipoId && (j.pts || j.reb || j.ast || j.rob || j.tap || j.per || j.faltas); }).sort(function (a, b) { return b.pts - a.pts; });
     if (!rows.length) return '';
-    return '<h2>' + dot(color) + esc(titulo) + '</h2><div class="scroll"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Per</th><th>F</th></tr></thead><tbody>' +
-      rows.map(function (j) { return '<tr><td class="nom"><a href="#/jugador/' + j.id + '"><span class="muted">#' + j.camiseta + '</span> ' + esc(j.nombre) + '</a></td><td><b>' + j.pts + '</b></td><td>' + j.reb + '</td><td>' + j.ast + '</td><td>' + j.rob + '</td><td>' + j.per + '</td><td>' + j.faltas + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    return '<h2>' + dot(color) + esc(titulo) + '</h2><div class="scroll"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Tap</th><th>Per</th><th>F</th></tr></thead><tbody>' +
+      rows.map(function (j) { return '<tr><td class="nom"><a href="#/jugador/' + j.id + '"><span class="muted">#' + j.camiseta + '</span> ' + esc(j.nombre) + '</a></td><td><b>' + j.pts + '</b></td><td>' + j.reb + '</td><td>' + j.ast + '</td><td>' + j.rob + '</td><td>' + j.tap + '</td><td>' + j.per + '</td><td>' + j.faltas + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
   function vPartido(id) {
     var p = S.partidos.filter(function (x) { return x.id === id; })[0];
@@ -355,16 +356,16 @@
   }
   function vJugadores(q) {
     var orden = q.orden || 'pts_prom', buscar = (q.q || '').toLowerCase();
-    var campos = [['pts_prom', 'Puntos'], ['reb_prom', 'Rebotes'], ['ast_prom', 'Asistencias'], ['rob_prom', 'Robos'], ['min_prom', 'Minutos'], ['altura_cm', 'Altura']];
+    var campos = [['pts_prom', 'Puntos'], ['reb_prom', 'Rebotes'], ['ast_prom', 'Asistencias'], ['rob_prom', 'Robos'], ['tap_prom', 'Tapones'], ['min_prom', 'Minutos'], ['altura_cm', 'Altura']];
     var porId = {}; S.statsJ.forEach(function (s) { porId[s.jugador_id] = s; });
     var lista = Object.keys(S.jug).map(function (id) { var j = S.jug[id], s = porId[id] || {}; return { id: id, nombre: j.nombre_completo, equipo_id: j.equipo_id, altura: j.altura_cm, s: s }; })
       .filter(function (x) { return !buscar || x.nombre.toLowerCase().indexOf(buscar) >= 0; })
       .sort(function (a, b) { var va = orden === 'altura_cm' ? a.altura : (a.s[orden] || 0), vb = orden === 'altura_cm' ? b.altura : (b.s[orden] || 0); return vb - va; });
     var h = '<h1>Jugadores</h1><div class="buscar"><input id="bJug" type="search" placeholder="Buscá a un jugador" value="' + esc(q.q || '') + '" aria-label="Buscar jugador"></div><div class="chips">' +
       campos.map(function (c) { return '<button type="button" class="chip' + (c[0] === orden ? ' on' : '') + '" data-orden="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="scroll"><table><thead><tr><th>Jugador</th><th>PJ</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th></tr></thead><tbody>';
+      '<div class="scroll"><table><thead><tr><th>Jugador</th><th>PJ</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Tap</th></tr></thead><tbody>';
     lista.forEach(function (x) {
-      h += '<tr><td class="nom"><a href="#/jugador/' + x.id + '">' + dot(eqColor(x.equipo_id)) + esc(x.nombre) + '<br><span class="muted sm">' + esc(eqNombre(x.equipo_id)) + (x.altura ? ' · ' + x.altura + ' cm' : '') + '</span></a></td><td>' + (x.s.pj || 0) + '</td><td>' + n1(x.s.pts_prom) + '</td><td>' + n1(x.s.reb_prom) + '</td><td>' + n1(x.s.ast_prom) + '</td><td>' + n1(x.s.rob_prom) + '</td></tr>';
+      h += '<tr><td class="nom"><a href="#/jugador/' + x.id + '">' + dot(eqColor(x.equipo_id)) + esc(x.nombre) + '<br><span class="muted sm">' + esc(eqNombre(x.equipo_id)) + (x.altura ? ' · ' + x.altura + ' cm' : '') + '</span></a></td><td>' + (x.s.pj || 0) + '</td><td>' + n1(x.s.pts_prom) + '</td><td>' + n1(x.s.reb_prom) + '</td><td>' + n1(x.s.ast_prom) + '</td><td>' + n1(x.s.rob_prom) + '</td><td>' + n1(x.s.tap_prom) + '</td></tr>';
     });
     h += '</tbody></table></div><p class="sm muted">Promedios por partido jugado. Tocá un jugador para ver su detalle.</p>';
     return h;

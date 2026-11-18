@@ -328,6 +328,7 @@ details.est{margin:6px 0 10px}details.est summary{min-height:44px;display:flex;a
 .s1 .chips .pp .nm{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .s1 .chips .pp .rz{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .chips.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chips.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .cb{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;padding-top:8px;border-top:1px dashed #ffffff30}
 .cb .op{min-height:38px;font-size:12px}
 .cb small{grid-column:1/3;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
@@ -542,17 +543,19 @@ const POS={B:'Base',E:'Escolta',A:'Alero',AP:'Ala-pívot',P:'Pívot'};
 const POSRANK={B:0,E:1,A:2,AP:3,P:4};
 /* Esquema propio de valoración (borrador). En la versión real vive en BASE › Config y se cambia sin tocar código. */
 const CFG={cuarto:600,ot:300,ganar:2,perder:1,
-  val:{pts:1,reb:1,rob:1.5,ast:1.5,per:-1.5,falta:-0.5,x1:-0.3,x2:-0.5,x3:-0.5}};
+  val:{pts:1,reb:1,rob:1.5,ast:1.5,tap:1,per:-1.5,falta:-0.5,x1:-0.3,x2:-0.5,x3:-0.5}};
 const qlen=q=>q<=4?CFG.cuarto:CFG.ot;
 const qstart=q=>{let t=0;for(let i=1;i<q;i++)t+=qlen(i);return t};
 const qlab=q=>q<=4?q+'.º':'Ex'+(q-4);
 const NEEDJ=['P1','P2','P3','X1','X2','X3','FALTA','PER','REB','ROB','AST'];
 const PUNTOS=['P1','P2','P3'],ERRADOS=['X1','X2','X3'];
-/* Tiempos muertos: 2 en cuartos 1-2; 3 en cuartos 3-4 (el tercero, solo en los últimos 2 min del 4.º); 1 por suplementario (supuesto, a confirmar) */
+/* Tiempos muertos (regla de la liga, 2026-11-18): 2 en la 1.ª mitad (los que no se usan se pierden) y 3 en la 2.ª mitad, libres entre el 3.º y el 4.º.
+   Si al llegar a los 2:00 finales del 4.º el equipo no usó ninguno de la 2.ª mitad, se le cancela uno (le quedan 2). 1 por suplementario. */
 const TM_FINAL=120;
 const PENAL=4;   /* faltas de equipo en el cuarto desde las que aparece la bandera de penalización */
 let DQ={};       /* descalificados del estado que se está dibujando */
-const GRUPOS_TM=[['#E9A400','1.ª mitad (2)'],['#2F80ED','2.ª mitad (2)'],['#E5484D','final del 4.º (1)'],['#8B5CF6','suplementario (1)']];
+const GRUPOS_TM=[['#E9A400','1.ª mitad (2)'],['#2F80ED','2.ª mitad (3)'],['#E5484D','cancelado a los 2:00 del 4.º'],['#8B5CF6','suplementario (1)']];
+const TM_UMBRAL=()=>qstart(4)+qlen(4)-TM_FINAL;   /* segundo de juego en que quedan 2:00 del 4.º */
 
 /* ---------- Estado ---------- */
 let S;
@@ -652,6 +655,8 @@ function quien(e,id){id=id||e.jug;return '#'+cam(e.equipo,id)+' '+corto(nom(id).
 function desc(e){
   const q=qlab(e.cuarto)+' · '+mmss(qlen(e.cuarto)-(e.t-qstart(e.cuarto)))+' · ';
   if(e.tipo==='TM')return q+tn(e.equipo)+' · Tiempo muerto';
+  if(e.det==='tapon'&&ERRADOS.includes(e.tipo))return q+tn(e.equipo)+' · '+ETQ[e.tipo]+' por tapón · '+quien(e)+' · tapón de '+(e.j2?quien({equipo:otro(e.equipo)},e.j2):'sin identificar');
+  if(e.tipo==='PER'&&!e.jug&&e.det==='equipo')return q+tn(e.equipo)+' · Pérdida de equipo (24 s)';
   if(e.tipo==='CAMBIO')return q+tn(e.equipo)+' · '+(!e.j2?'Sale '+quien(e)+' sin reemplazo':!e.jug?'Entra '+quien(e,e.j2)+' (suma un jugador)':'Cambio: sale '+quien(e)+', entra '+quien(e,e.j2));
   if(e.tipo==='FALTA'&&(e.det==='entrenador'||e.det==='banco'))return q+tn(e.equipo)+' · Falta técnica al '+(e.det==='entrenador'?'entrenador':'banco');
   if(e.tipo==='FALTA')return q+tn(e.equipo)+' · Falta '+(e.det==='tecnica'?'técnica':e.det)+' · '+quien(e);
@@ -668,7 +673,7 @@ function calc(list,tn_){
     par:[0,1,2,3].map(()=>({local:0,visitante:0})),perT:{local:0,visitante:0},pts:{},f:{},fte:{},fan:{},desc:{},reb:{},rebo:{},rebd:{},rob:{},per:{},ast:{},min:{},
     c1:{},c2:{},c3:{},x1:{},x2:{},x3:{},
     ft:{local:[0,0,0,0],visitante:[0,0,0,0]},tm:{local:0,visitante:0},jugo:new Set(),
-    tmU:{local:{h1:0,h2:0,ot:{}},visitante:{h1:0,h2:0,ot:{}}},
+    tmU:{local:{h1:0,h2:0,pre:0,ot:{}},visitante:{h1:0,h2:0,pre:0,ot:{}}},tmCanc:{local:false,visitante:false},tap:{},
     tec:{local:{c:0,b:0},visitante:{c:0,b:0}},dqEnt:{}};
   const ent={},val={P1:1,P2:2,P3:3},inc=(o,k)=>{o[k]=(o[k]||0)+1};
   const mapa={P1:'c1',P2:'c2',P3:'c3',X1:'x1',X2:'x2',X3:'x3',REB:'reb',ROB:'rob',PER:'per',AST:'ast',FALTA:'f'};
@@ -679,9 +684,9 @@ function calc(list,tn_){
       const u=R.tmU[e.equipo],nom_=tn(e.equipo);
       if(e.cuarto<=2){if(u.h1>=2){R.err=nom_+' ya usó sus 2 tiempos muertos de la primera mitad.';break}u.h1++}
       else if(e.cuarto<=4){
-        if(u.h2>=3){R.err=nom_+' ya usó sus 3 tiempos muertos de la segunda mitad.';break}
-        if(u.h2===2&&!(e.cuarto===4&&e.t>=qstart(4)+qlen(4)-TM_FINAL)){R.err=nom_+': el tercer tiempo muerto se puede pedir recién en los últimos 2 minutos del 4.º cuarto.';break}
-        u.h2++}
+        const canc=e.t>=TM_UMBRAL()&&u.pre===0,tope=canc?2:3;   /* sin tiempos antes de los 2:00 del 4.º: se cancela uno */
+        if(u.h2>=tope){R.err=canc?nom_+' perdió un tiempo muerto por no pedir ninguno antes de los 2:00 finales del 4.º, y ya usó los 2 que le quedaban.':nom_+' ya usó sus 3 tiempos muertos de la segunda mitad.';break}
+        u.h2++;if(e.t<TM_UMBRAL())u.pre++}
       else{if((u.ot[e.cuarto]||0)>=1){R.err=nom_+' ya usó su tiempo muerto de este suplementario.';break}u.ot[e.cuarto]=1}
       R.tm[e.equipo]++;continue}
     if(e.tipo==='FALTA'&&(e.det==='entrenador'||e.det==='banco')){   /* técnica al entrenador (C) o al banco (B): no es de un jugador y no cuenta como falta de equipo */
@@ -689,6 +694,9 @@ function calc(list,tn_){
       if(!R.dqEnt[e.equipo]&&(u.c>=2||u.c+u.b>=3)){R.dqEnt[e.equipo]=u.c>=2?'2 técnicas del entrenador':'3 técnicas entre entrenador y banco';R.warn.push('El entrenador de '+tn(e.equipo)+' quedó descalificado ('+R.dqEnt[e.equipo]+').')}
       continue}
     if(e.jug&&eqDe(e.jug)!==e.equipo){R.err='El evento «'+desc(e)+'» pone a un jugador en el equipo equivocado.';break}
+    if(e.det==='tapon'&&e.j2){   /* tapón: el que tapona es del otro equipo y tiene que estar en cancha */
+      if(eqDe(e.j2)===e.equipo){R.err='El tapón de «'+desc(e)+'» lo tiene que hacer un jugador del equipo contrario.';break}
+      if(!R.on[otro(e.equipo)].includes(e.j2)){R.err=quien({equipo:otro(e.equipo)},e.j2)+' no estaría en cancha para taponar.';break}}
     if(e.tipo==='QUINTETO'){if(!on.includes(e.jug)){on.push(e.jug);ent[e.jug]=e.t}R.jugo.add(e.jug);continue}
     if(e.tipo==='CAMBIO'){   /* normal (sale y entra) · sin reemplazo (j2 vacío) · suma un jugador (jug vacío) */
       if(e.j2&&eqDe(e.j2)!==e.equipo){R.err='El que entra en «'+desc(e)+'» no es de ese equipo.';break}
@@ -717,7 +725,9 @@ function calc(list,tn_){
         const m=e.det==='descalificante'?'falta descalificante':te>=2?'2 faltas técnicas':(te>=1&&an>=1)?'antideportiva + técnica':an>=2?'2 faltas antideportivas':(R.f[e.jug]||0)>=5?'5 faltas':null;
         if(m)R.desc[e.jug]=m}}
     if(e.tipo==='REB'){const d=repDet(e,list);if(d)inc(d==='O'?R.rebo:R.rebd,e.jug)}   /* ofensivo: lo agarra el equipo que tiró; defensivo: el rival */
+    if(e.det==='tapon'&&e.j2)inc(R.tap,e.j2);   /* el tiro errado ya quedó para el taponado; el tapón suma al que taponó */
   }
+  ['local','visitante'].forEach(eq=>{R.tmCanc[eq]=tF>=TM_UMBRAL()&&R.tmU[eq].pre===0});
   for(const id in ent)R.min[id]=(R.min[id]||0)+Math.max(0,tF-ent[id]);
   if(!R.err)for(const id in R.desc)R.warn.push(quien({equipo:eqDe(id)},id)+' quedó descalificado ('+R.desc[id]+').');
   return R;
@@ -727,7 +737,7 @@ const marc=R=>R.sc.local+'–'+R.sc.visitante;
 /* Valoración propia: cada acción pesa lo que dice CFG.val (se ve en Estadísticas) */
 function valo(R,id){
   const w=CFG.val,g=k=>R[k][id]||0;
-  return r1(g('pts')*w.pts+g('reb')*w.reb+g('rob')*w.rob+g('ast')*w.ast+g('per')*w.per+g('f')*w.falta+g('x1')*w.x1+(g('x2'))*w.x2+g('x3')*w.x3);
+  return r1(g('pts')*w.pts+g('reb')*w.reb+g('rob')*w.rob+g('ast')*w.ast+g('tap')*w.tap+g('per')*w.per+g('f')*w.falta+g('x1')*w.x1+(g('x2'))*w.x2+g('x3')*w.x3);
 }
 const sumEq=(R,eq,k)=>pres(eq).reduce((a,j)=>a+(R[k][j.id]||0),0)+(k==='per'?R.perT[eq]:0);
 const tc=(R,id)=>({m:(R.c2[id]||0)+(R.c3[id]||0),a:(R.c2[id]||0)+(R.c3[id]||0)+(R.x2[id]||0)+(R.x3[id]||0)});
@@ -755,6 +765,7 @@ function puntaje(act,eq,id,R,par){
   if(act==='REB'){s=(d.alt-170)/4+[-1,0,2,4,6][b];why=POS[d.pos].toLowerCase()+' · '+d.alt+' cm'}
   else if(act==='ROB'){s=[5,4,2,0,-1][b]+(200-d.alt)/8;why=POS[d.pos].toLowerCase()+' · rápido'}
   else if(act==='PER'){s=[5,4,3,1,1][b]+(200-d.alt)/20;why='maneja la bola'}
+  else if(act==='TAP'){s=(d.alt-170)/3+[-1,0,1,3,5][b];why=POS[d.pos].toLowerCase()+' · '+d.alt+' cm'}
   else if(act==='AST'){s=[5,4,3,1,1.5][b]+(200-d.alt)/25;why=b<=2?'reparte el juego':'pasa desde adentro'}
   else if(act==='FALTA'){
     s=[0,0,1,2,2][b]+(R.f[id]||0)*.2;why=POS[d.pos].toLowerCase()+' · contacto';
@@ -773,8 +784,8 @@ function puntaje(act,eq,id,R,par){
    El punto de partida es altura y posición (más lo que pasa en este partido). A medida que un jugador acumula minutos, su historial real
    (rebotes, robos, asistencias, pérdidas, faltas y tiros POR MINUTO) pesa cada vez más: con HK minutos de historial pesa lo mismo que el punto de partida. */
 const HK=120;
-const HIST_ACT={REB:h=>h.reb,ROB:h=>h.rob,PER:h=>h.per,AST:h=>h.ast,FALTA:h=>h.f,'1':h=>h.t1,'2':h=>h.t2,'3':h=>h.t3};
-const HIST_TXT={REB:'rebotes',ROB:'robos',PER:'pérdidas',AST:'asistencias',FALTA:'faltas','1':'libres','2':'dobles','3':'triples'};
+const HIST_ACT={REB:h=>h.reb,ROB:h=>h.rob,PER:h=>h.per,AST:h=>h.ast,TAP:h=>h.tap||0,FALTA:h=>h.f,'1':h=>h.t1,'2':h=>h.t2,'3':h=>h.t3};
+const HIST_TXT={REB:'rebotes',ROB:'robos',PER:'pérdidas',AST:'asistencias',TAP:'tapones',FALTA:'faltas','1':'libres','2':'dobles','3':'triples'};
 const claveHist=act=>/^[PX][123]$/.test(act)?act[1]:(HIST_ACT[act]?act:null);
 function mezclarHist(act,items){
   const k=claveHist(act);if(!k||items.length<2)return items;
@@ -951,10 +962,11 @@ function pp(eq,id,rz,sel,act){
   return '<button class="pp '+(eq==='local'?'tl':'tv')+(rz?'':' solo')+(sel?' sel':'')+(DQ[id]?' dq"'+(S.ui.acc==='CAMBIO'?'':' disabled')+' aria-label="descalificado':'')+'" data-act="'+(act||'pl')+'" data-eq="'+eq+'" data-id="'+id+'"><b class="num">'+esc(cam(eq,id))+'</b><span class="nm">'+esc(corto(nom(id).n))+'</span>'+(rz?'<span class="rz">'+esc(rz)+'</span>':'')+'</button>';
 }
 function tmEstado(R,eq){
-  const u=R.tmU[eq],c=S.cuarto,fin=c===4&&qlen(4)-S.sec<=TM_FINAL,L=[];
+  const u=R.tmU[eq],c=S.cuarto,canc=R.tmCanc[eq],L=[];
   for(let i=0;i<2;i++)L.push({k:GRUPOS_TM[0][0],g:'1.ª mitad',s:i<u.h1?'used':(c<=2?'ok':'exp')});
-  for(let i=0;i<2;i++)L.push({k:GRUPOS_TM[1][0],g:'2.ª mitad',s:i<Math.min(u.h2,2)?'used':(c<=2?'pen':c<=4?'ok':'exp')});
-  L.push({k:GRUPOS_TM[2][0],g:'final del 4.º',s:u.h2>=3?'used':(c<=3?'pen':c===4?(fin?'ok':'pen'):'exp')});
+  for(let i=0;i<3;i++){
+    if(i===2&&canc&&u.h2<3){L.push({k:GRUPOS_TM[2][0],g:'cancelado: no pidió ninguno antes de los 2:00 del 4.º',s:'exp'});continue}
+    L.push({k:GRUPOS_TM[1][0],g:'2.ª mitad',s:i<u.h2?'used':(c<=2?'pen':c<=4?'ok':'exp')})}
   for(let q=5;q<=Math.max(c,5);q++)L.push({k:GRUPOS_TM[3][0],g:'suplementario '+(q-4),ot:1,s:(u.ot[q]||0)>=1?'used':(q===c?'ok':(q>c?'pen':'exp'))});
   return L;
 }
@@ -979,6 +991,7 @@ function alertas(R){
     const n=R.on[eq].length,banco=pres(eq).filter(j=>!R.on[eq].includes(j.id)&&!R.desc[j.id]).length;
     if(n<2)A.push({k:'min-'+eq,sev:'rojo',fijo:1,txt:'<b>'+esc(tn(eq))+'</b> quedó con menos de 2 jugadores: en el reglamento habitual el partido se da por perdido. Confirmalo con la liga.'});
     else if(n<5&&banco>0)A.push({k:'ba-'+eq+'-'+n,sev:'amar',txt:'<b>'+esc(tn(eq))+'</b> juega con '+n+'. Podés sumar un jugador del banco.',btns:[['Sumar','sumar',{eq}]]});
+    if(R.tmCanc[eq]&&S.cuarto===4)A.push({k:'tmc-'+eq,sev:'amar',txt:'⏱️ <b>'+esc(tn(eq))+'</b> no pidió tiempos muertos en la 2.ª mitad antes de los 2:00 finales: <b>pierde uno y le quedan '+Math.max(0,2-R.tmU[eq].h2)+'</b>.'});
   });
   const act=S.ev.filter(e=>!e.anulado&&e.tipo!=='QUINTETO').sort((a,b)=>a.seq-b.seq||a.id-b.id),sus=[],val={P1:1,P2:2,P3:3};
   for(let i=1;i<act.length;i++){
@@ -1044,8 +1057,17 @@ function vSug(R){
   if(!a)return '';
   if(a==='BP'){
     const b=u.bp||{};
-    if(!b.m)return panel('Robo / Pérdida','¿qué pasó?','<div class="chips two"><button class="op" data-act="bpm" data-m="ROB">ROBO</button><button class="op" data-act="bpm" data-m="PER">PÉRDIDA</button></div>','');
-    if(b.m==='PER')return panel('Pérdida','¿quién perdió la bola?',dos('PER'),tg('Ver los 5'));
+    if(!b.m)return panel('Robo / Pérdida / Tapón','¿qué pasó?','<div class="chips three"><button class="op" data-act="bpm" data-m="ROB">ROBO</button><button class="op" data-act="bpm" data-m="PER">PÉRDIDA</button><button class="op" data-act="bpm" data-m="TAP">TAPÓN</button></div>','');
+    if(b.m==='PER'){                                                 /* además de los jugadores: pérdida de equipo (por ejemplo, 24 segundos) */
+      const pe=eq=>'<div class="cb"><button class="op" data-act="perEq" data-eq="'+eq+'" style="grid-column:1/3">Pérdida de equipo · 24 s</button></div>';
+      const col=eq=>colEq(eq,lista(eq,'PER'),'pl').replace(/<\/div>$/,pe(eq)+'</div>');
+      return panel('Pérdida','¿quién perdió la bola? · o pérdida de equipo',lados(col('local'),col('visitante')),tg('Ver los 5'));
+    }
+    if(b.m==='TAP'){                                                 /* tapón: quién taponó → a quién (suma un tiro errado) → rebote */
+      if(!b.th)return panel('Tapón','¿quién taponó?',dos('TAP'),tg('Ver los 5'));
+      const opp=otro(b.th.eq),tt=b.t3?'X3':'X2';
+      return panel('Tapón de '+esc(corto(nom(b.th.id).n)),'¿a quién taponó? · le suma un '+(b.t3?'triple':'doble')+' errado',ladoEq(opp,colEq(opp,lista(opp,tt),'pl')),opcion(b.t3?'Era un doble':'Era un triple','tapT3')+tg('Ver los 5'));
+    }
     if(!b.th)return panel('Robo','¿quién la robó?',dos('ROB'),tg('Ver los 5'));
     const opp=otro(b.th.eq);
     return panel('Pérdida','¿quién la perdió? · tras el robo de '+esc(corto(nom(b.th.id).n)),ladoEq(opp,colEq(opp,lista(opp,'PER'),'pl')),opcion('Sin identificar','bpSin')+tg('Ver los 5'));
@@ -1112,7 +1134,7 @@ function vJuego(){
   +'<div class="mid">'+bandera('local','l')+'<button class="adj" data-act="ajuste">Ajustar reloj</button><button class="clk '+(S.run?'':'pau')+'" data-act="clk" aria-label="Reloj: '+mmss(qlen(S.cuarto)-S.sec)+', '+(S.run?'en marcha, tocar para pausar':'pausado, tocar para iniciar')+'"><span class="dg" data-clk>'+mmss(qlen(S.cuarto)-S.sec)+'</span><small data-clkl>'+(S.run?'en marcha · pausar':'pausa · iniciar')+'</small></button>'+bandera('visitante','r')+'</div>'
   +'<div class="eq tv" style="--esc:'+esc(escudoCss('visitante'))+'"><span>'+esc(tn('visitante'))+'</span><b class="pt">'+R.sc.visitante+'</b>'+faltasEq(fq('visitante'))+'</div></div>'
   +'<div class="lrow">'+luces(R,'local')+'<button class="und2" data-act="undo" aria-label="Deshacer el último evento"'+(ultAct?'':' disabled')+'>↶ Deshacer</button>'+luces(R,'visitante')+'</div></div>'+(nt?'<div class="ntw">'+nt+'</div>':'')+'</div>'
-  +'<div class="bub acn'+(gg==='acn'?' activa':'')+'" role="group" aria-label="Acción">'+ab('FALTA','Falta')+ab('BP','Robo / Pérdida')+en('acn')+'</div>'
+  +'<div class="bub acn'+(gg==='acn'?' activa':'')+'" role="group" aria-label="Acción">'+ab('FALTA','Falta')+ab('BP','Robo / Pérdida','o tapón')+en('acn')+'</div>'
   +'<div class="bub pun'+cls+(gg==='pun'?' activa':'')+(pt?' sel':'')+'" role="group" aria-label="Puntos"><div class="stp">¿Qué tiro?</div>'+tp(1,'SIMPLE')+tp(2,'DOBLE')+tp(3,'TRIPLE')
   +'<div class="res'+(pt?'':' off')+(pt&&gg!=='pun'?' x3':'')+'">'+(pt&&gg!=='pun'?'<button class="cx" data-act="cancelAcc" aria-label="Cancelar">✕</button>':'')+'<button class="rs x'+(ERRADOS.includes(acc)?' on':'')+'" data-act="res" data-r="X" aria-pressed="'+ERRADOS.includes(acc)+'"'+(pt?'':' disabled')+'>Errado</button><button class="rs c'+(PUNTOS.includes(acc)?' on':'')+'" data-act="res" data-r="P" aria-pressed="'+PUNTOS.includes(acc)+'"'+(pt?'':' disabled')+'>Convertido</button></div>'+en('pun')+'</div>'
   +'<div class="bub ges'+(gg==='ges'?' activa':'')+'" role="group" aria-label="Gestión">'+ab('CAMBIO','Cambio')+ab('TM','Tiempo')+en('ges')+'</div>'
@@ -1134,9 +1156,9 @@ function tablaJug(R,eq){
   const ids=pres(eq).map(j=>j.id).filter(id=>R.jugo.has(id)||R.min[id]);
   const f=(fn,id)=>{const x=fn(R,id);return x.a?x.m+'/'+x.a:'–'};
   const T=(fn)=>{const x=tot(R,eq,fn);return x.a?x.m+'/'+x.a:'–'};
-  return '<div class="tblw"><table><thead><tr><th>'+esc(tn(eq))+'</th><th>Min</th><th>Pts</th><th>TC</th><th>3P</th><th>TL</th><th>RO</th><th>RD</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Per</th><th>Fal</th><th>Val</th></tr></thead><tbody>'
-  +ids.map(id=>'<tr'+(R.desc[id]?' class="dq"':'')+'><td>#'+esc(cam(eq,id))+' '+esc(corto(nom(id).n))+(R.desc[id]?' <span class="badge bad">descalificado</span>':R.on[eq].includes(id)?' <span class="badge ok">en cancha</span>':'')+'</td><td data-min="'+id+'">'+mmss(R.min[id]||0)+'</td><td>'+(R.pts[id]||0)+'</td><td>'+f(tc,id)+'</td><td>'+f(t3,id)+'</td><td>'+f(tl,id)+'</td><td>'+(R.rebo[id]||0)+'</td><td>'+(R.rebd[id]||0)+'</td><td>'+(R.reb[id]||0)+'</td><td>'+(R.ast[id]||0)+'</td><td>'+(R.rob[id]||0)+'</td><td>'+(R.per[id]||0)+'</td><td>'+(R.f[id]||0)+((R.f[id]||0)>=5?' <span class="badge bad">5</span>':'')+'</td><td class="v">'+valo(R,id)+'</td></tr>').join('')
-  +'<tr class="tot"><td>Equipo</td><td></td><td>'+R.sc[eq]+'</td><td>'+T(tc)+'</td><td>'+T(t3)+'</td><td>'+T(tl)+'</td><td>'+sumEq(R,eq,'rebo')+'</td><td>'+sumEq(R,eq,'rebd')+'</td><td>'+sumEq(R,eq,'reb')+'</td><td>'+sumEq(R,eq,'ast')+'</td><td>'+sumEq(R,eq,'rob')+'</td><td>'+sumEq(R,eq,'per')+'</td><td>'+sumEq(R,eq,'f')+'</td><td>'+r1(ids.reduce((a,id)=>a+valo(R,id),0))+'</td></tr></tbody></table></div>';
+  return '<div class="tblw"><table><thead><tr><th>'+esc(tn(eq))+'</th><th>Min</th><th>Pts</th><th>TC</th><th>3P</th><th>TL</th><th>RO</th><th>RD</th><th>Reb</th><th>Ast</th><th>Rob</th><th>Tap</th><th>Per</th><th>Fal</th><th>Val</th></tr></thead><tbody>'
+  +ids.map(id=>'<tr'+(R.desc[id]?' class="dq"':'')+'><td>#'+esc(cam(eq,id))+' '+esc(corto(nom(id).n))+(R.desc[id]?' <span class="badge bad">descalificado</span>':R.on[eq].includes(id)?' <span class="badge ok">en cancha</span>':'')+'</td><td data-min="'+id+'">'+mmss(R.min[id]||0)+'</td><td>'+(R.pts[id]||0)+'</td><td>'+f(tc,id)+'</td><td>'+f(t3,id)+'</td><td>'+f(tl,id)+'</td><td>'+(R.rebo[id]||0)+'</td><td>'+(R.rebd[id]||0)+'</td><td>'+(R.reb[id]||0)+'</td><td>'+(R.ast[id]||0)+'</td><td>'+(R.rob[id]||0)+'</td><td>'+(R.tap[id]||0)+'</td><td>'+(R.per[id]||0)+'</td><td>'+(R.f[id]||0)+((R.f[id]||0)>=5?' <span class="badge bad">5</span>':'')+'</td><td class="v">'+valo(R,id)+'</td></tr>').join('')
+  +'<tr class="tot"><td>Equipo</td><td></td><td>'+R.sc[eq]+'</td><td>'+T(tc)+'</td><td>'+T(t3)+'</td><td>'+T(tl)+'</td><td>'+sumEq(R,eq,'rebo')+'</td><td>'+sumEq(R,eq,'rebd')+'</td><td>'+sumEq(R,eq,'reb')+'</td><td>'+sumEq(R,eq,'ast')+'</td><td>'+sumEq(R,eq,'rob')+'</td><td>'+sumEq(R,eq,'tap')+'</td><td>'+sumEq(R,eq,'per')+'</td><td>'+sumEq(R,eq,'f')+'</td><td>'+r1(ids.reduce((a,id)=>a+valo(R,id),0))+'</td></tr></tbody></table></div>';
 }
 function vStats(){
   const R=estado(),v=S.ui.stats,w=CFG.val;
@@ -1145,7 +1167,7 @@ function vStats(){
     +R.par.map((p,i)=>'<tr><td>'+qlab(i+1)+'</td><td>'+p.local+'</td><td>'+p.visitante+'</td></tr>').join('')+'<tr class="tot"><td>Total</td><td>'+R.sc.local+'</td><td>'+R.sc.visitante+'</td></tr></tbody></table></div>'
     +'<div class="tblw"><table><thead><tr><th></th><th>'+esc(tn('local'))+'</th><th>'+esc(tn('visitante'))+'</th></tr></thead><tbody>'
     +[['Tiros de campo',tc],['Triples',t3],['Tiros libres',tl]].map(r=>{const a=tot(R,'local',r[1]),b=tot(R,'visitante',r[1]);return '<tr><td>'+r[0]+'</td><td>'+a.m+'/'+a.a+' · '+pct(a.m,a.a)+'</td><td>'+b.m+'/'+b.a+' · '+pct(b.m,b.a)+'</td></tr>'}).join('')
-    +[['Rebotes','reb'],['· ofensivos','rebo'],['· defensivos','rebd'],['Asistencias','ast'],['Robos','rob'],['Pérdidas','per'],['Faltas','f']].map(r=>'<tr><td>'+r[0]+'</td><td>'+sumEq(R,'local',r[1])+'</td><td>'+sumEq(R,'visitante',r[1])+'</td></tr>').join('')
+    +[['Rebotes','reb'],['· ofensivos','rebo'],['· defensivos','rebd'],['Asistencias','ast'],['Robos','rob'],['Tapones','tap'],['Pérdidas','per'],['Faltas','f']].map(r=>'<tr><td>'+r[0]+'</td><td>'+sumEq(R,'local',r[1])+'</td><td>'+sumEq(R,'visitante',r[1])+'</td></tr>').join('')
     +'<tr><td>Tiempos muertos</td><td>'+R.tm.local+'</td><td>'+R.tm.visitante+'</td></tr></tbody></table></div>'
     +(S.corr.length?'<h3>Correcciones ('+S.corr.length+')</h3><ul class="feed">'+S.corr.map(c=>'<li><div class="d">'+(c.rev?'<span class="badge">revertida</span>':'')+esc(c.accion)+': '+esc(c.antes)+' → '+esc(c.despues)+'<small>Marcador '+c.mA+' → '+c.mD+'</small></div></li>').join('')+'</ul><button class="btn alt small" data-act="revert"'+(S.corr.some(c=>!c.rev)?'':' disabled')+'>Deshacer la última corrección</button>':'')
    :tablaJug(R,v);
@@ -1175,13 +1197,14 @@ function vCorr(){
     if(PUNTOS.includes(e.tipo)||ERRADOS.includes(e.tipo)||e.tipo==='FALTA')modos.push(['tipo',e.tipo==='FALTA'?'Cambiar tipo de falta':ERRADOS.includes(e.tipo)?'Cambiar ✗1 / ✗2 / ✗3':'Cambiar +1 / +2 / +3'])}
   if(e.tipo==='TM')modos.push(['equipo','Cambiar equipo']);
   if(e.tipo==='CAMBIO'&&e.j2&&e.jug)modos.push(['j2','Cambiar quién entra']);
+  if(e.det==='tapon')modos.push(['j2','Cambiar quién taponó']);
   modos.push(['cuarto','Mover de período'],['anular','Anular evento']);
   let opts='';
   if(c.modo==='jugador')opts=pres(e.equipo).filter(j=>j.id!==e.jug).map(j=>[j.id,'#'+cam(e.equipo,j.id)+' '+corto(j.n)]);
-  if(c.modo==='equipo')opts=(e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug))?[[otro(e.equipo),'Pasar a '+tn(otro(e.equipo))]]:pres(otro(e.equipo)).map(j=>[j.id,tn(otro(e.equipo))+' · #'+cam(otro(e.equipo),j.id)+' '+corto(j.n)]);
+  if(c.modo==='equipo')opts=(e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug)||(e.tipo==='PER'&&!e.jug&&e.det==='equipo'))?[[otro(e.equipo),'Pasar a '+tn(otro(e.equipo))]]:pres(otro(e.equipo)).map(j=>[j.id,tn(otro(e.equipo))+' · #'+cam(otro(e.equipo),j.id)+' '+corto(j.n)]);
   if(c.modo==='tipo')opts=e.tipo==='FALTA'?FALTAS.filter(f=>f[0]!==e.det).map(f=>[f[0],f[1]]):(ERRADOS.includes(e.tipo)?ERRADOS:PUNTOS).filter(t=>t!==e.tipo).map(t=>[t,ETQ[t]]);
   if(c.modo==='cuarto')opts=S.ev.reduce((m,x)=>Math.max(m,x.cuarto),4)&&Array.from({length:Math.max(4,...S.ev.map(x=>x.cuarto))},(_,i)=>i+1).filter(q=>q!==e.cuarto).map(q=>[String(q),qlab(q)+(q<=4?' cuarto':'')]);
-  if(c.modo==='j2')opts=pres(e.equipo).filter(j=>j.id!==e.jug&&j.id!==e.j2).map(j=>[j.id,'#'+cam(e.equipo,j.id)+' '+corto(j.n)]);
+  if(c.modo==='j2')opts=e.det==='tapon'?pres(otro(e.equipo)).filter(j=>j.id!==e.j2).map(j=>[j.id,'#'+cam(otro(e.equipo),j.id)+' '+corto(j.n)]):pres(e.equipo).filter(j=>j.id!==e.jug&&j.id!==e.j2).map(j=>[j.id,'#'+cam(e.equipo,j.id)+' '+corto(j.n)]);
   let prev='';
   const cambio=cambioObj(e,c);
   if(cambio){
@@ -1199,7 +1222,7 @@ function cambioObj(e,c){
   if(c.modo==='anular')return {anular:true};
   if(!c.modo||c.val==null)return null;
   if(c.modo==='jugador')return {jug:c.val};
-  if(c.modo==='equipo')return (e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug))?{equipo:otro(e.equipo)}:{equipo:otro(e.equipo),jug:c.val};
+  if(c.modo==='equipo')return (e.tipo==='TM'||(e.tipo==='FALTA'&&!e.jug)||(e.tipo==='PER'&&!e.jug&&e.det==='equipo'))?{equipo:otro(e.equipo)}:{equipo:otro(e.equipo),jug:c.val};
   if(c.modo==='tipo')return e.tipo==='FALTA'?{det:c.val}:{tipo:c.val};
   if(c.modo==='cuarto')return {cuarto:+c.val};
   if(c.modo==='j2')return {j2:c.val};
@@ -1386,11 +1409,11 @@ function filasEq(R,eq){
   const ids=pres(eq).map(j=>j.id).sort((a,b)=>(+cam(eq,a)||99)-(+cam(eq,b)||99)),jugo=id=>R.jugo.has(id)||R.min[id];
   const f=(fn,id)=>{const q=fn(R,id);return q.a?q.m+'/'+q.a:'–'},T=fn=>{const q=tot(R,eq,fn);return q.a?q.m+'/'+q.a:'–'};
   const pj=(fn,id)=>{const q=fn(R,id);return q.a?Math.round(100*q.m/q.a)+'%':'–'},PT=fn=>{const q=tot(R,eq,fn);return q.a?Math.round(100*q.m/q.a)+'%':'–'};   /* porcentaje de tiro */
-  const filas=ids.map(id=>({dq:!!R.desc[id]||!jugo(id),v:['#'+cam(eq,id)+' '+corto(nom(id).n)+(R.desc[id]?' (desc.)':!jugo(id)?' (no jugó)':''),mmss(R.min[id]||0),R.pts[id]||0,f(tc,id),pj(tc,id),f(t3,id),pj(t3,id),f(tl,id),pj(tl,id),R.rebo[id]||0,R.rebd[id]||0,R.reb[id]||0,R.ast[id]||0,R.rob[id]||0,R.per[id]||0,R.f[id]||0,valo(R,id)]}));
-  filas.push({tot:1,v:['Equipo','',R.sc[eq],T(tc),PT(tc),T(t3),PT(t3),T(tl),PT(tl),sumEq(R,eq,'rebo'),sumEq(R,eq,'rebd'),sumEq(R,eq,'reb'),sumEq(R,eq,'ast'),sumEq(R,eq,'rob'),sumEq(R,eq,'per'),sumEq(R,eq,'f'),r1(ids.reduce((a,id)=>a+valo(R,id),0))]});
+  const filas=ids.map(id=>({dq:!!R.desc[id]||!jugo(id),v:['#'+cam(eq,id)+' '+corto(nom(id).n)+(R.desc[id]?' (desc.)':!jugo(id)?' (no jugó)':''),mmss(R.min[id]||0),R.pts[id]||0,f(tc,id),pj(tc,id),f(t3,id),pj(t3,id),f(tl,id),pj(tl,id),R.rebo[id]||0,R.rebd[id]||0,R.reb[id]||0,R.ast[id]||0,R.rob[id]||0,R.tap[id]||0,R.per[id]||0,R.f[id]||0,valo(R,id)]}));
+  filas.push({tot:1,v:['Equipo','',R.sc[eq],T(tc),PT(tc),T(t3),PT(t3),T(tl),PT(tl),sumEq(R,eq,'rebo'),sumEq(R,eq,'rebd'),sumEq(R,eq,'reb'),sumEq(R,eq,'ast'),sumEq(R,eq,'rob'),sumEq(R,eq,'tap'),sumEq(R,eq,'per'),sumEq(R,eq,'f'),r1(ids.reduce((a,id)=>a+valo(R,id),0))]});
   return filas;
 }
-const COLS_JUG=[['Jugador',200,'l'],['MIN',64],['PTS',52],['TC',74],['TC%',54],['3P',66],['3P%',54],['TL',66],['TL%',54],['RO',46],['RD',46],['REB',52],['AST',52],['ROB',52],['PER',52],['FAL',52],['VAL',84]];
+const COLS_JUG=[['Jugador',182,'l'],['MIN',60],['PTS',52],['TC',70],['TC%',54],['3P',62],['3P%',54],['TL',62],['TL%',54],['RO',46],['RD',46],['REB',52],['AST',52],['ROB',52],['TAP',52],['PER',52],['FAL',48],['VAL',70]];
 function informe(R,parcial){
   /* Una sola hoja A4: el alto de las filas se ajusta solo según cuántos jugadores haya */
   const P=paleta(),gl=R.sc.local>R.sc.visitante,empate=R.sc.local===R.sc.visitante;
@@ -1423,7 +1446,7 @@ function informe(R,parcial){
   const rb=eq=>sumEq(R,eq,'reb')+'  (of. '+sumEq(R,eq,'rebo')+' · def. '+sumEq(R,eq,'rebd')+')';
   y=tablaPdf(x,y+48,[['',360,'l'],[tn('local'),380],[tn('visitante'),380]],[
     {v:['Tiros de campo',par(tc,'local'),par(tc,'visitante')]},{v:['Triples',par(t3,'local'),par(t3,'visitante')]},{v:['Tiros libres',par(tl,'local'),par(tl,'visitante')]},
-    {v:['Rebotes',rb('local'),rb('visitante')]},{v:['Asistencias'].concat(rr('ast'))},{v:['Robos'].concat(rr('rob'))},{v:['Pérdidas'].concat(rr('per'))},{v:['Faltas'].concat(rr('f'))},{v:['Técnicas: entrenador / banco',R.tec.local.c+' / '+R.tec.local.b,R.tec.visitante.c+' / '+R.tec.visitante.b]},{v:['Tiempos muertos',R.tm.local,R.tm.visitante]}],IK.ink,'#fff',RH);
+    {v:['Rebotes',rb('local'),rb('visitante')]},{v:['Asistencias'].concat(rr('ast'))},{v:['Robos'].concat(rr('rob'))},{v:['Tapones'].concat(rr('tap'))},{v:['Pérdidas (de equipo)',sumEq(R,'local','per')+' ('+R.perT.local+')',sumEq(R,'visitante','per')+' ('+R.perT.visitante+')']},{v:['Faltas'].concat(rr('f'))},{v:['Técnicas: entrenador / banco',R.tec.local.c+' / '+R.tec.local.b,R.tec.visitante.c+' / '+R.tec.visitante.b]},{v:['Tiempos muertos',R.tm.local,R.tm.visitante]}],IK.ink,'#fff',RH);
   const fg=figura(R),dqs=Object.keys(R.desc);
   x.fillStyle=IK.ink;x.font=FB(23,600);x.textAlign='left';let ty=y+36;
   const linea=t=>{x.fillText(recorta(x,t,1120),60,ty);ty+=30};
@@ -1431,7 +1454,7 @@ function informe(R,parcial){
   const dqE=Object.keys(R.dqEnt).map(eq=>'Entrenador de '+tn(eq)+' ('+R.dqEnt[eq]+')'),dqT=dqs.map(id=>nom(id).n+' ('+R.desc[id]+')').concat(dqE);
   linea('Descalificados: '+(dqT.length?dqT.join(', '):'ninguno')+'   ·   Correcciones durante el partido: '+S.corr.filter(c=>!c.rev).length);
   x.fillStyle=IK.mut;x.font=FB(19,500);
-  linea('Valoración: pts '+CFG.val.pts+' · reb '+CFG.val.reb+' · rob '+CFG.val.rob+' · ast '+CFG.val.ast+' · pér '+CFG.val.per+' · falta '+CFG.val.falta+' · libre errado '+CFG.val.x1+' · campo errado '+CFG.val.x2+' (borrador)');
+  linea('Valoración: pts '+CFG.val.pts+' · reb '+CFG.val.reb+' · rob '+CFG.val.rob+' · ast '+CFG.val.ast+' · tap '+CFG.val.tap+' · pér '+CFG.val.per+' · falta '+CFG.val.falta+' · libre errado '+CFG.val.x1+' · campo errado '+CFG.val.x2+' (borrador)');
   return [p1.c];
 }
 /* PDF mínimo: una imagen JPEG por página A4. No necesita librerías y funciona sin conexión. */
@@ -1459,7 +1482,7 @@ function armarPDF(urls,w,h){
 function filasEst(R){
   return ['local','visitante'].flatMap(eq=>pres(eq).filter(j=>R.jugo.has(j.id)||R.min[j.id]).map(j=>{
     const id=j.id,a=tc(R,id),b=t3(R,id),c=tl(R,id);
-    return {id_partido:idPartido(),id_jugador:id,jugador:j.n,equipo:tn(eq),min:r1((R.min[id]||0)/60),pts:R.pts[id]||0,tc_m:a.m,tc_a:a.a,t3_m:b.m,t3_a:b.a,tl_m:c.m,tl_a:c.a,ro:R.rebo[id]||0,rd:R.rebd[id]||0,reb:R.reb[id]||0,ast:R.ast[id]||0,rob:R.rob[id]||0,per:R.per[id]||0,faltas:R.f[id]||0,desc:R.desc[id]||'',val:valo(R,id)};
+    return {id_partido:idPartido(),id_jugador:id,jugador:j.n,equipo:tn(eq),min:r1((R.min[id]||0)/60),pts:R.pts[id]||0,tc_m:a.m,tc_a:a.a,t3_m:b.m,t3_a:b.a,tl_m:c.m,tl_a:c.a,ro:R.rebo[id]||0,rd:R.rebd[id]||0,reb:R.reb[id]||0,ast:R.ast[id]||0,rob:R.rob[id]||0,tap:R.tap[id]||0,per:R.per[id]||0,faltas:R.f[id]||0,desc:R.desc[id]||'',val:valo(R,id)};
   }));
 }
 async function genInforme(){
@@ -1544,7 +1567,10 @@ function render(){
 /* Solo el reloj y los minutos: no se vuelve a dibujar la pantalla, así los toques no se pierden */
 function pulso(){
   if(S.fase!==3||!S.run)return;
-  S.sec=Math.min(qlen(S.cuarto),S.sec+S.vel);
+  const antes=S.sec;S.sec=Math.min(qlen(S.cuarto),S.sec+S.vel);
+  if(S.cuarto===4&&antes<qlen(4)-TM_FINAL&&S.sec>=qlen(4)-TM_FINAL){   /* quedan 2:00: ¿alguien pierde un tiempo muerto? */
+    const Rx=estado(),pq=['local','visitante'].filter(eq=>Rx.tmCanc[eq]);
+    if(pq.length){toast('⏱️ Quedan 2:00: '+pq.map(tn).join(' y ')+' pierde'+(pq.length>1?'n':'')+' un tiempo muerto (no pidió ninguno en la 2.ª mitad).');render();return}}
   if(S.sec>=qlen(S.cuarto)){S.run=false;toast('Terminó el '+qlab(S.cuarto)+(S.cuarto<=4?' cuarto':'')+'.');render();return}
   const R=estado();
   document.querySelectorAll('[data-clk]').forEach(c=>{c.textContent=mmss(qlen(S.cuarto)-S.sec)});
@@ -1566,6 +1592,13 @@ function cerrarBP(perd){
   if(!addEv({equipo:opp,jug:perd?perd.id:null,tipo:'PER',det:null,j2:null,ref:rob.id,rk:perd?rankDe('PER',opp,perd.id):undefined})){S.ev.pop();S.nid--;S.nseq--;resetAcc();render();return}
   reg(desc(rob)+' · '+desc(S.ev[S.ev.length-1]).split(' · ').slice(1).join(' · '));
   resetAcc();render();
+}
+function cerrarTap(d){   /* tapón: tiro errado del taponado (con el que taponó en j2) y, después, el rebote */
+  const u=S.ui,b=u.bp,tipo=b.t3?'X3':'X2';
+  if(addEv({equipo:d.eq,jug:d.id,tipo,det:'tapon',j2:b.th.id,rk:rankDe(tipo,d.eq,d.id)})){
+    const e=S.ev[S.ev.length-1];reg(desc(e));resetAcc();u.reb={eq:d.eq,ref:e.id,x1:false};
+  }else resetAcc();
+  render();
 }
 function resetAcc(){S.ui.acc=null;S.ui.bp=null;S.ui.pt=null;S.ui.reb=null;S.ui.pf=null;S.ui.pc=null;S.ui.ast=null;S.ui.todos=false}
 function reg(txt){toast('Anotado: '+txt)}
@@ -1620,6 +1653,8 @@ const ACT={
   acc(d){const igual=S.ui.acc===d.t;resetAcc();S.ui.acc=igual?null:d.t;if(!igual&&/^[PX][123]$/.test(d.t))S.ui.pt=+d.t[1];if(!igual&&d.t==='BP')S.ui.bp={m:null,th:null};render()},
   bpm(d){S.ui.bp.m=d.m;S.ui.todos=false;render()},
   bpSin(){cerrarBP(null)},
+  tapT3(){S.ui.bp.t3=!S.ui.bp.t3;render()},
+  perEq(d){if(addEv({equipo:d.eq,jug:null,tipo:'PER',det:'equipo',j2:null}))reg(desc(S.ev[S.ev.length-1]));resetAcc();render()},
   cancelAcc(){resetAcc();render()},
   todos(){S.ui.todos=!S.ui.todos;render()},
   pl(d){
@@ -1632,6 +1667,10 @@ const ACT={
       const b=u.bp;
       if(!b||!b.m){toast('Elegí Robo o Pérdida.');return}
       if(b.m==='PER'){cerrarBP({eq:d.eq,id:d.id});return}
+      if(b.m==='TAP'){
+        if(!b.th){b.th={eq:d.eq,id:d.id,rk:rankDe('TAP',d.eq,d.id)};u.todos=false;render();return}
+        if(d.eq===b.th.eq){toast('El taponado es del equipo contrario.');return}
+        cerrarTap(d);return}
       if(!b.th){b.th={eq:d.eq,id:d.id,rk:rankDe('ROB',d.eq,d.id)};u.todos=false;render();return}
       if(d.eq===b.th.eq){toast('La pérdida es de un jugador del equipo contrario.');return}
       cerrarBP({eq:d.eq,id:d.id});return}

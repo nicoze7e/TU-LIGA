@@ -418,8 +418,8 @@
   function histDe(jid) {                              // historial del jugador (sumado de todos sus equipos): lo usa la planilla para sugerir con datos reales
     var h = null;
     (D.vista_stats_jugador || []).forEach(function (s) {
-      if (s.jugador_id !== jid) return; h = h || { pj: 0, min: 0, reb: 0, ast: 0, rob: 0, per: 0, f: 0, t1: 0, t2: 0, t3: 0 };
-      var pj = +s.pj || 0; h.pj += pj; h.min += pj * (+s.min_prom || 0); h.reb += +s.reb || 0; h.ast += +s.ast || 0; h.rob += +s.rob || 0; h.per += +s.per || 0; h.f += +s.faltas || 0;
+      if (s.jugador_id !== jid) return; h = h || { pj: 0, min: 0, reb: 0, ast: 0, rob: 0, tap: 0, per: 0, f: 0, t1: 0, t2: 0, t3: 0 };
+      var pj = +s.pj || 0; h.pj += pj; h.min += pj * (+s.min_prom || 0); h.reb += +s.reb || 0; h.ast += +s.ast || 0; h.rob += +s.rob || 0; h.tap += +s.tap || 0; h.per += +s.per || 0; h.f += +s.faltas || 0;
       h.t1 += +s.tl_int || 0; h.t3 += +s.t3_int || 0; h.t2 += Math.max(0, (+s.tc_int || 0) - (+s.t3_int || 0));
     });
     return h;
